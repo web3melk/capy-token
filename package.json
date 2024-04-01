@@ -1,0 +1,39 @@
+{
+    "name": "capy-token",
+    "version": "1.0.0",
+    "description": "",
+    "scripts": {
+        "test": "mocha --exit --recursive"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "Disabled": {
+        "@nomiclabs/hardhat-waffle": "^2.0.6"
+    },
+    "devDependencies": {
+        "@anders-t/ethers-ledger": "^1.0.4",
+        "@nomiclabs/hardhat-ethers": "^2.2.3",
+        "@nomiclabs/hardhat-etherscan": "^3.0.0",
+        "@nomiclabs/hardhat-waffle": "^2.0.5",
+        "@nomiclabs/hardhat-web3": "^2.0.0",
+        "@openzeppelin/test-environment": "^0.1.9",
+        "@openzeppelin/test-helpers": "^0.5.15",
+        "@types/chai-as-promised": "^7.1.5",
+        "@types/mocha": "^9.1.1",
+        "canonical-weth": "^1.4.0",
+        "chai": "^4.3.4",
+        "chai-bn": "^0.3.0",
+        "ethereum-waffle": "^3.4.0",
+        "ethers": "^5.0.0",
+        "hardhat": "^2.22.2",
+        "hardhat-gas-reporter": "^2.0.2",
+        "solidity-coverage": "^0.8.11",
+        "web3": "^1.6.1"
+    },
+    "dependencies": {
+        "@openzeppelin/contracts": "^4.4.2",
+        "@uniswap/v2-core": "^1.0.0",
+        "@uniswap/v2-periphery": "^1.1.0-beta.0"
+    }
+}

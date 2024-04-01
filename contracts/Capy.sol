@@ -1,0 +1,466 @@
+// SPDX-License-Identifier: MIT
+// Compatible with OpenZeppelin Contracts ^5.0.0
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol';
+import '@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol';
+import "hardhat/console.sol";
+
+contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
+    using SafeMath for uint256;
+    mapping (address => bool) public isExcludedFromFees;
+    mapping(address => bool) public isExcludedFromMaxTransaction;
+    mapping (address => bool) public isBlacklisted;
+    bool public swapEnabled;
+    bool public tradingActive;
+    bool public checkReceive = true;
+    bool public limited = true;
+    address[] public founders;
+    address public treasury;
+    address public uniswapV2Pair;
+
+    // UniswapV2Router02 on BASE
+    address public Router = 0x6BDED42c6DA8FBf0d2bA55B2fa120C5e0c8D7891;
+
+    mapping(address => bool) private _emergencyWithdrawAllowance;
+    mapping(address => bool) private _automatedMarketMakerPairs;
+    uint256 private _emergencyWithdrawPermissions = 0;
+    uint256 private _maxFounders = 50;
+    uint256 private _initialBuyFee = 0;
+    uint256 private _initialSellFee = 25;
+    uint256 private _finalBuyFee = 5;
+    uint256 private _finalSellFee = 5;
+    uint256 private _increaseBuyFeeAt = 500;
+    uint256 private _reduceSellFeeAt = 1000;
+    uint256 private _preventSwapBefore = 50;
+    uint256 private _buyCount = 0;
+    uint256 private _minWithdrawToken = 1_000; // 1,000 tokens
+    uint256 private _minWithdrawETH = 1_000_000 gwei; // 0.001 ether
+    uint8 private _decimals = 18;
+    uint256 private _mintTotal = 1_000_000_000 * 10 ** _decimals;
+    // remove _taxSwapThreshold
+    uint256 private _taxSwapThreshold= 1_000_000 * 10 ** _decimals;
+    uint256 private _maxFeeSwap= 10_000_000 * 10 ** _decimals;
+    bool private _swapping = false;
+    uint256 public maxTransaction = _mintTotal;
+    uint256 public maxWallet = _mintTotal / 50;
+    uint256 public swapTokensAtAmount = (_mintTotal * 1) / 1000;
+
+    IUniswapV2Router02 private uniswapV2Router;
+    modifier lockTheSwap {
+        _swapping = true;
+        _;
+        _swapping = false;
+    }
+
+    event ExcludeFromLimits(address indexed account, bool isExcluded);
+
+    event ExcludeFromFees(address indexed account, bool isExcluded);
+
+    event SetAutomatedMarketMakerPair(address indexed pair, bool indexed value);
+
+    constructor(address _treasury)
+        ERC20("Capybase Society Token", "CAPY")
+        Ownable()
+    {
+        treasury = _treasury;
+        _excludeFromFees(msg.sender, true);
+        _excludeFromFees(address(this), true);
+        _excludeFromFees(address(0xdead), true);
+        _excludeFromFees(treasury, true);
+
+        _excludeFromMaxTransaction(msg.sender, true);
+        _excludeFromMaxTransaction(address(this), true);
+        _excludeFromMaxTransaction(address(0xdead), true);
+        _excludeFromMaxTransaction(treasury, true);
+
+        founders.push(msg.sender);
+
+        _mint(address(this), _mintTotal);
+    }
+
+    modifier onlyFounderAfterLaunchOrOwner() {
+        require(owner() == msg.sender || (isFounder(msg.sender) && tradingActive), "caller is not the owner or founder after launch");
+        _;
+    }
+
+    modifier onlyFounder() {
+        require(isFounder(msg.sender), "caller is not a founder");
+        _;
+    }
+
+    receive() external payable  {
+        if (!_automatedMarketMakerPairs[msg.sender] && checkReceive) {
+            require(!tradingActive, "Trading already started");
+            require(founders.length < _maxFounders, "Max founders reached");
+            require(!isFounder(msg.sender), "Already a founder");
+            require(msg.value == 0.5 ether, "Exatcly 0.5 ETH required");
+            founders.push(msg.sender);
+            _excludeFromFees(msg.sender, true);
+        }
+    }
+
+    function isFounder(address account) public view returns (bool) {
+        for(uint i = 0; i < founders.length; i++) {
+            if (founders[i] == account) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function totalFounders() public view returns (uint256) {
+        return founders.length;
+    }
+
+    function setBlacklist(address account, bool value) external onlyOwner {
+        isBlacklisted[account] = value;
+    }
+
+    function excludeFromMaxTransaction(address account, bool value)
+        public
+        onlyOwner
+    {
+        _excludeFromMaxTransaction(account, value);
+    }
+
+    function _excludeFromMaxTransaction(address account, bool value)
+        private
+    {
+        isExcludedFromMaxTransaction[account] = value;
+        emit ExcludeFromLimits(account, value);
+    }
+
+    function bulkExcludeFromMaxTransaction(
+        address[] calldata accounts,
+        bool value
+    ) public onlyOwner {
+        for (uint256 i = 0; i < accounts.length; i++) {
+            _excludeFromMaxTransaction(accounts[i], value);
+        }
+    }
+
+    function excludeFromFees(address account, bool value) public onlyOwner {
+        _excludeFromFees(account, value);
+    }
+
+    function _excludeFromFees(address account, bool value) private {
+        isExcludedFromFees[account] = value;
+        emit ExcludeFromFees(account, value);
+    }
+
+
+    function bulkExcludeFromFees(address[] calldata accounts, bool value)
+        public
+        onlyOwner
+    {
+        for (uint256 i = 0; i < accounts.length; i++) {
+            _excludeFromFees(accounts[i], value);
+        }
+    }
+
+    // missing tests
+    function removeLimits() external onlyOwner{
+        limited = false;
+        maxWallet = totalSupply();
+    }
+
+    function setSwapEnabled(bool value) public onlyOwner {
+        swapEnabled = value;
+    }
+
+    // missing tests
+    function setSwapTokensAtAmount(uint256 amount) public onlyOwner {
+        require(
+            amount >= (totalSupply() * 1) / 100000,
+            "ERC20: Swap amount cannot be lower than 0.001% total supply."
+        );
+        require(
+            amount <= (totalSupply() * 5) / 1000,
+            "ERC20: Swap amount cannot be higher than 0.5% total supply."
+        );
+        swapTokensAtAmount = amount;
+    }
+
+    // missing tests
+    function setMaxWalletAndMaxTransaction(
+        uint256 _maxTransaction,
+        uint256 _maxWallet
+    ) public onlyOwner {
+        require(
+            _maxTransaction >= ((totalSupply() * 5) / 1000),
+            "ERC20: Cannot set maxTxn lower than 0.5%"
+        );
+        require(
+            _maxWallet >= ((totalSupply() * 5) / 1000),
+            "ERC20: Cannot set maxWallet lower than 0.5%"
+        );
+        maxTransaction = _maxTransaction;
+        maxWallet = _maxWallet;
+    }
+
+    function toogleCheckReceive(bool value) public onlyOwner {
+        checkReceive = value;
+    }
+
+    function _transfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal override {
+        require(from != address(0), "ERC20: transfer from the zero address");
+        require(to != address(0), "ERC20: transfer to the zero address");
+        require(!isBlacklisted[to] && !isBlacklisted[from], "Blacklisted");
+
+        if (amount == 0) {
+            super._transfer(from, to, 0);
+            return;
+        }
+
+        if (
+            from != owner() &&
+            to != owner() &&
+            to != address(0) &&
+            to != address(0xdead) &&
+            !_swapping
+        ) {
+            // Before trading active, only allows transfers between allowed addresses
+            if (!tradingActive) {
+                require(
+                    isExcludedFromFees[from] || isExcludedFromFees[to],
+                    "Trading not started"
+                );
+            }
+
+            // Only allows buys from founders when limited
+            if (limited && _automatedMarketMakerPairs[from]) {  // has to be the LP
+                require(balanceOf(to) + amount <= maxWallet, "Forbid");
+                require(isFounder(from) || isFounder(to), "Forbid");
+            }
+
+            // test maxTransaction and maxWallet
+            // when buy
+            if (
+                _automatedMarketMakerPairs[from] &&
+                !isExcludedFromMaxTransaction[to]
+            ) {
+                require(
+                    amount <= maxTransaction,
+                    "Buy transfer amount exceeds the maxTransaction."
+                );
+                require(
+                    amount + balanceOf(to) <= maxWallet,
+                    "Max wallet exceeded"
+                );
+            }
+            // when sell
+            else if (
+                _automatedMarketMakerPairs[to] &&
+                !isExcludedFromMaxTransaction[from]
+            ) {
+                require(
+                    amount <= maxTransaction,
+                    "Sell transfer amount exceeds the maxTransaction."
+                );
+            }
+            // when normal transfer
+            else if (!isExcludedFromMaxTransaction[to]) {
+                require(
+                    amount + balanceOf(to) <= maxWallet,
+                    "Max wallet exceeded"
+                );
+            }
+        }
+
+        uint256 contractTokenBalance = balanceOf(address(this));
+        if (
+            contractTokenBalance >= swapTokensAtAmount && // there is more tokens than threshold
+            swapEnabled && // auto swap is enabled
+            tradingActive && // pool is created
+            !_swapping && // it is not a transfer of swap from contract
+            !isExcludedFromFees[from] &&
+            !isExcludedFromFees[to] &&
+            _automatedMarketMakerPairs[to] && // it is a sell
+            _buyCount >= _preventSwapBefore // it is not the first transactions
+        ) {
+            _swap(min(amount, min(contractTokenBalance, _maxFeeSwap)));
+        }
+
+        // If sender is not excluded from fees and not swaping, take fees
+        if (!isExcludedFromFees[from] && !isExcludedFromFees[to] && !_swapping) {
+            uint256 fees = 0;
+
+            // on buy
+            if (_automatedMarketMakerPairs[from] && !_automatedMarketMakerPairs[to] && ! isExcludedFromFees[to] ) {
+                fees = amount.mul((_buyCount>=_increaseBuyFeeAt) ? _finalBuyFee : _initialBuyFee).div(100);
+                _buyCount++; // only ocunts buys made by addresses not whitelabeled
+            }
+            // on sell
+            else if (_automatedMarketMakerPairs[to] && ! isExcludedFromFees[from]) {
+                fees = amount.mul((_buyCount>=_reduceSellFeeAt) ? _finalSellFee : _initialSellFee).div(100);
+            }
+
+            if (fees > 0) {
+                super._transfer(from, address(this), fees);
+            }
+
+            amount -= fees;
+        }
+
+        super._transfer(from, to, amount);
+    }
+
+    function launch(uint256 amount) external onlyOwner {
+        require(!tradingActive, "Trading already started");
+        require(address(this).balance >= amount, "Not enough ETH in the contract");
+
+        uniswapV2Router = IUniswapV2Router02(Router);
+        _approve(address(this), address(uniswapV2Router), totalSupply());
+        excludeFromMaxTransaction(address(uniswapV2Router), true);
+
+        uniswapV2Pair = IUniswapV2Factory(uniswapV2Router.factory()).createPair(address(this), uniswapV2Router.WETH());
+        _approve(address(this), address(uniswapV2Pair), type(uint256).max); // usado no swap
+        IERC20(uniswapV2Pair).approve(address(uniswapV2Router), type(uint).max);
+        _setAutomatedMarketMakerPair(address(uniswapV2Pair), true);
+        excludeFromMaxTransaction(address(uniswapV2Pair), true);
+
+        uint256 initialDistribution = balanceOf(address(this)) * 10 / 100;
+        uint256 amountTokenDesired = balanceOf(address(this)) - initialDistribution;
+        uniswapV2Router.addLiquidityETH {
+          value: amount
+        }(
+          address(this), // token
+          amountTokenDesired, // amountTokenDesired
+          0, // amountTokenMin
+          0, // amountETHMin
+          address(0), // to
+          block.timestamp // deadline
+        );
+
+        // Withdraw to treasury and founders the initial distribution
+        _withdrawTokens(initialDistribution);
+
+        // Withdraw to treasury the remaining ETH
+        payable(treasury).transfer(address(this).balance);
+
+        tradingActive = true;
+        swapEnabled = true;
+    }
+
+    function setRouter(address router) external onlyOwner {
+        Router = router;
+    }
+
+    function updateTreasury(address account) public {
+        require(treasury == msg.sender, "caller is not the treasury owner");
+        require(account != address(0), "Cannot set treasury to the zero address");
+        require(account != address(this), "Cannot set treasury to the contract address");
+        delete isExcludedFromFees[treasury]; // delete current treasury
+        treasury = account;
+        _excludeFromFees(treasury, true); // add the new treasury
+    }
+
+    function manualSwap() external onlyFounderAfterLaunchOrOwner {
+        uint256 tokenBalance = balanceOf(address(this));
+        require(tokenBalance > _minWithdrawToken, "Not enough tokens to swap");
+        _swap(tokenBalance);
+    }
+
+    function _swap(uint256 amount) private lockTheSwap {
+        // swap tokens for ETH
+        if (amount < _minWithdrawToken) {
+            return;
+        }
+
+        address[] memory path = new address[](2);
+        path[0] = address(this);
+        path[1] = uniswapV2Router.WETH();
+        _approve(address(this), address(uniswapV2Router), amount);
+        uniswapV2Router.swapExactTokensForETHSupportingFeeOnTransferTokens(
+            amount, // The amount of input tokens to send.
+            0, // The minimum amount of output tokens that must be received for the transaction not to revert.
+            path, // An array of token addresses. path.length must be >= 2. Pools for each consecutive pair of addresses must exist and have liquidity.
+            address(this), // Recipient of the ETH.
+            block.timestamp // Unix timestamp after which the transaction will revert.
+        );
+
+        // send ETH to treasury and founders
+        _withdrawETH(address(this).balance);
+    }
+
+    function withdrawTokens() public onlyFounderAfterLaunchOrOwner {
+        uint256 tokenBalance = balanceOf(address(this));
+        require(tokenBalance > _minWithdrawToken, "Not enough tokens to withdraw");
+        _withdrawTokens(tokenBalance);
+    }
+
+    function _withdrawTokens(uint256 amount) private {
+        if (amount > _minWithdrawToken) {
+            uint256 founder_amount = amount.mul(80).div(100).div(founders.length);
+            for(uint i = 0; i < founders.length; i++) {
+                _transfer(address(this), founders[i], founder_amount);
+            }
+            _transfer(address(this), treasury, amount.mul(20).div(100));
+        }
+    }
+
+    function withdrawETH() public onlyFounderAfterLaunchOrOwner {
+        uint256 ethBalance = address(this).balance;
+        require(ethBalance > _minWithdrawETH, "Not enough ETH to withdraw");
+        _withdrawETH(ethBalance);
+    }
+
+    function _withdrawETH(uint256 amount) private {
+        if(amount > _minWithdrawETH) {
+          uint256 founder_amount = amount.mul(80).div(100).div(founders.length);
+          for(uint i = 0; i < founders.length; i++) {
+            payable(founders[i]).transfer(founder_amount);
+          }
+          payable(treasury).transfer(amount.mul(20).div(100));
+        }
+    }
+
+    function _setAutomatedMarketMakerPair(address pair, bool value) internal {
+        _automatedMarketMakerPairs[pair] = value;
+        emit SetAutomatedMarketMakerPair(pair, value);
+    }
+
+    function allowEmergencyWithdraw() public onlyFounder {
+        require(!_emergencyWithdrawAllowance[msg.sender], "Already allowed");
+        _emergencyWithdrawAllowance[msg.sender] = true;
+        _emergencyWithdrawPermissions += 1;
+    }
+
+    function emergencyWithdraw() public onlyOwner {
+        require(_emergencyWithdrawPermissions > founders.length / 2, "Not allowed by majority");
+        payable(msg.sender).transfer(address(this).balance);
+    }
+
+    // missing tests
+    function withdrawStuckTokens(address tkn) public onlyOwner {
+        bool success;
+        if (tkn == address(0))
+            (success, ) = address(msg.sender).call{
+                value: address(this).balance
+            }("");
+        else {
+            require(IERC20(tkn).balanceOf(address(this)) > 0, "No tokens");
+            uint256 amount = IERC20(tkn).balanceOf(address(this));
+            IERC20(tkn).transfer(msg.sender, amount);
+        }
+    }
+
+    // This method is used only in tests, not usable in producton.
+    function updateBuyCount(uint256 count) public onlyOwner {
+        require(_buyCount == 0, "Not zero");
+        _buyCount = count;
+    }
+
+    function min(uint256 a, uint256 b) private pure returns (uint256) {
+        return (a>b)?b:a;
+    }
+}
