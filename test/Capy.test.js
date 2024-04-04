@@ -11,18 +11,16 @@ chai.use(solidity);
 function eth(amount) {
   return ethers.utils.parseEther(amount.toString());
 }
-
-const emittedEvents = [];
-const saveEvents = async (tx) => {
-  const receipt = await tx.wait()
-  receipt.events.forEach(ev => {
-    if (ev.event) {
-      emittedEvents.push({
-        name: ev.event,
-        args: ev.args
-      });
-    }
-  });
+function dollar(amount) {
+  return ethers.utils.parseEther(amount.toString());
+}
+function ethFromDollar(dollar) {
+  let amount = dollar / 3600;
+  return ethers.utils.parseEther(amount.toFixed(18).toString());
+}
+function dollarFromETH(eth) {
+  let amount = eth * 3600;
+  return amount.toFixed(18).toString();
 }
 
 describe('Capy', function () {
@@ -32,7 +30,11 @@ describe('Capy', function () {
     this.deployer = this.signers[0]
     this.notAdmin = this.signers[1];
     this.og = this.signers[3];
+    this.uniswapV2Pair = async function () {
+      return (await this.contract.uniswapV2Pair()).toLowerCase();
+    }
     this.addOGs = async function (total) {
+      this.tokenPrice = total * 0.5 / 500_000_000 * 3600; // considering 1 ether = $3,600
       await this.og.sendTransaction({
         to: this.contract.address,
         value: eth(0.5)
@@ -68,8 +70,9 @@ describe('Capy', function () {
 
       await this.contract.setRouter(this.uniswapRouter.address);
     };
-    this.emittedEvent = function(name, args) {
+    this.emittedEvent = function(name, args, log = false) {
       return this.receipt.events.find((event) => {
+        if (log) console.log(event.event, event.args);
         return event.event == name && JSON.stringify(event.args) == JSON.stringify(args)
       }) != undefined;
     }
@@ -244,10 +247,10 @@ describe('Capy', function () {
       // Send passed amount of ETH to pool
       expect(await this.WETH.balanceOf(uniswapV2PairAddress)).to.equal(eth(4.5));
       expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth(0));
-      // Send 95% of tokens to pool
-      expect(await this.contract.balanceOf(uniswapV2PairAddress)).to.equal(eth(500000000));
-      // Send 4% of tokens to OGs, total 10, so deployer receive 1/10 of 4%
-      expect(await this.contract.balanceOf(this.deployer.address)).to.equal(eth(50000000));
+      // Send 50% of tokens to pool
+      expect(await this.contract.balanceOf(uniswapV2PairAddress)).to.equal(eth(500_000_000));
+      // Send 50% of tokens to OGs, total 10, so deployer receive 1/10 of 50%
+      expect(await this.contract.balanceOf(this.deployer.address)).to.equal(eth(50_000_000));
     });
   });
 
@@ -296,7 +299,6 @@ describe('Capy', function () {
         expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth(500));
         expect(await this.contract.balanceOf(this.deployer.address)).to.equal(previousDeployerBalance.sub(eth(500)));
       });
-
       it('from deployer to another wallet', async function () {
         await this.contract.withdrawTokens();
         let previousDeployerBalance = await this.contract.balanceOf(this.deployer.address);
@@ -350,13 +352,8 @@ describe('Capy', function () {
         await this.deployUniswap();
         await this.addOGs(9);
         await this.contract.toogleCheckReceive(false);
-        await this.signers[19].sendTransaction({
-          to: this.contract.address,
-          value: eth(90)
-        });
         await this.contract.toogleCheckReceive(true);
         await this.contract.launch();
-        // 90 ETH for 900M tokens = price 0.0000001 ETH per token
       });
       describe("withdrawTokens", function () {
         describe("without balance", function () {
@@ -399,20 +396,23 @@ describe('Capy', function () {
       describe("fees", function () {
         before(async function () {
           this.buy = async function (wallet, amountEth) {
-            await this.uniswapRouter.connect(wallet).swapExactETHForTokensSupportingFeeOnTransferTokens(
+            expect(Number(await ethers.provider.getBalance(wallet.address))).to.be.gte(Number(amountEth));
+            return await this.uniswapRouter.connect(wallet).swapExactETHForTokensSupportingFeeOnTransferTokens(
               eth(0),
               [this.WETH.address, this.contract.address],
               wallet.address,
               (Date.now() + 1000 * 60 * 10),
               {
-                value: eth(amountEth)
+                value: amountEth // pass as eth(1) for 1 eth
               }
             );
           };
           this.sell = async function (wallet, amountToken) {
+            expect(Number(await this.contract.balanceOf(wallet.address))).to.be.gte(Number(amountToken));
+
             await this.contract.connect(wallet).approve(this.uniswapRouter.address, eth(amountToken));
-            await this.uniswapRouter.connect(wallet).swapExactTokensForETHSupportingFeeOnTransferTokens(
-              eth(amountToken),
+            return await this.uniswapRouter.connect(wallet).swapExactTokensForETHSupportingFeeOnTransferTokens(
+              amountToken, // pass as eth(1) for 1 token
               0,
               [this.contract.address, this.WETH.address],
               wallet.address,
@@ -421,148 +421,98 @@ describe('Capy', function () {
           };
         });
         describe("buy", function () {
-          xit('collect no fees before 500 buys', async function () {
-            let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
-            await this.buy(this.signers[15], 0.00005);
-            let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
-            expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth("498.499723886541825065"));
+          it('collect no fees before 500 buys', async function () {
+            expect(this.tokenPrice.toString()).to.equal('0.0000324');
+            await this.buy(this.signers[15], ethFromDollar(3.24));
+            let balance = await this.contract.balanceOf(this.signers[15].address);
+            expect(ethers.utils.formatEther(balance)).to.be.equal('99680.12378331760646927');
+            expect(parseFloat(ethers.utils.formatEther(balance)) * this.tokenPrice).to.be.closeTo(3.24, 0.02)
           });
-
-          xit('collect fees after 500 buys', async function () {
+          it('do collect fees after 500 buys', async function () {
             await this.contract.updateBuyCount(600);
-            let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
-            await expect(this.uniswapRouter.connect(this.signers[15]).swapExactETHForTokensSupportingFeeOnTransferTokens(
-              eth(0),
-              [this.WETH.address, this.contract.address],
-              this.signers[15].address,
-              (Date.now() + 1000 * 60 * 10),
-              {
-                value: eth(0.00005)
-              }
-            )).to.emit(this.contract, 'Transfer').withArgs(
-              this.signers[15].address,
-              this.contract.address,
-              eth('24.924986194327091253')
-            );
+            expect(this.tokenPrice.toString()).to.equal('0.0000324');
+            await this.buy(this.signers[15], ethFromDollar(3.24));
+            let balance = await this.contract.balanceOf(this.signers[15].address);
+            // amount without fee is 99680.12378331760646927
+            let fees = (eth('99680.12378331760646927').sub(balance));
+            expect(parseFloat(ethers.utils.formatEther(fees)) / 100_000).to.be.closeTo(0.02, 0.001)
+            expect(parseFloat(ethers.utils.formatEther(balance)) * this.tokenPrice).to.be.closeTo(3.16, 0.02)
 
-            let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
-            expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth("498.499723886541825065").sub(eth('24.924986194327091253')));
           });
-          xit('do not collect fees after 500 buys when wallet is excluded', async function () {
+          it('do not collect fees after 500 buys when wallet is excluded', async function () {
             await this.contract.updateBuyCount(600);
             await this.contract.excludeFromFees(this.signers[15].address, true);
-            let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
-            await expect(this.uniswapRouter.connect(this.signers[15]).swapExactETHForTokensSupportingFeeOnTransferTokens(
-              eth(0),
-              [this.WETH.address, this.contract.address],
-              this.signers[15].address,
-              (Date.now() + 1000 * 60 * 10),
-              {
-                value: eth(0.000005)
-              }
-            )).to.emit(this.contract, 'Transfer').withArgs(
-              await this.contract.uniswapV2Pair(),
-              this.signers[15].address,
-              eth('49.849997238864041825')
-            ); // these parameters are from the sell itself and not the fee
-
-            let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
-            expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth("49.849997238864041825"));
+            expect(this.tokenPrice.toString()).to.equal('0.0000324');
+            await this.buy(this.signers[15], ethFromDollar(3.24));
+            let balance = await this.contract.balanceOf(this.signers[15].address);
+            expect(ethers.utils.formatEther(balance)).to.be.equal('99680.12378331760646927');
+            expect(parseFloat(ethers.utils.formatEther(balance)) * this.tokenPrice).to.be.closeTo(3.24, 0.02)
           });
         });
         describe("sell", function () {
-          xit('collect 25% of fees before 1000 buys', async function () {
-            await this.contract.connect(this.treasury).transfer(this.signers[15].address, eth(10));
-            let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
-            let previousContractBalance = await this.contract.balanceOf(this.contract.address);
-            await this.contract.connect(this.signers[15]).approve(this.uniswapRouter.address, eth(1));
-            await expect(this.uniswapRouter.connect(this.signers[15]).swapExactTokensForETHSupportingFeeOnTransferTokens(
-              eth(1),
-              eth(0),
-              [this.contract.address, this.WETH.address],
-              this.signers[15].address,
-              (Date.now() + 1000 * 60 * 10),
-            )).to.emit(this.contract, 'Transfer').withArgs(
-              await this.contract.uniswapV2Pair(),
-              this.contract.address,
-              eth(0.25)
-            );
-
-            let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
-            expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth(1).mul(-1));
-            let laterContractBalance = await this.contract.balanceOf(this.contract.address);
-            expect(laterContractBalance.sub(previousContractBalance)).to.equal(eth(0.25));
+          it('do collect 5% of fees before 1000 buys', async function () {
+            let sellFee = 0.05;
+            await this.contract.connect(this.deployer).transfer(this.signers[15].address, eth(1_000_000));
+            expect(this.tokenPrice.toString()).to.equal('0.0000324');
+            let previousBalance = await ethers.provider.getBalance(this.signers[15].address);
+            await this.sell(this.signers[15], eth(1000000));
+            expect(await this.contract.balanceOf(this.signers[15].address)).to.equal(eth(0));
+            let newBalance = await ethers.provider.getBalance(this.signers[15].address);
+            let received = newBalance.sub(previousBalance);
+            let wouldReceive = ethFromDollar(1000_000 * (1 - sellFee) * this.tokenPrice);
+            expect(parseFloat(ethers.utils.formatEther(received))).to.be.closeTo(parseFloat(ethers.utils.formatEther(wouldReceive)), 1000);
+            let wouldReceivedWithoutFeeETH = ethFromDollar(1000_000 * this.tokenPrice);
+            let fees = wouldReceivedWithoutFeeETH.sub(received);
+            expect((fees / wouldReceivedWithoutFeeETH) - 0.04).to.be.closeTo(sellFee, 0.01)
+            expect(parseFloat(ethers.utils.formatEther(received))).to.be.closeTo(0.0081, 0.0001);
           });
-          xit('collect 25% of fees after 500 buys and before 1000 buys', async function () {
+          it('do collect 5% of fees after 500 buys and before 1000 buys', async function () {
             await this.contract.updateBuyCount(600);
-            await this.contract.connect(this.treasury).transfer(this.signers[15].address, eth(10));
-            let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
-            let previousContractBalance = await this.contract.balanceOf(this.contract.address);
-            await this.contract.connect(this.signers[15]).approve(this.uniswapRouter.address, eth(1));
-            await expect(this.uniswapRouter.connect(this.signers[15]).swapExactTokensForETHSupportingFeeOnTransferTokens(
-              eth(1),
-              0,
-              [this.contract.address, this.WETH.address],
-              this.signers[15].address,
-              (Date.now() + 1000 * 60 * 10),
-            ));
-            // .to.emit(this.contract, 'Transfer').withArgs(
-            //   await this.contract.uniswapV2Pair(),
-            //   this.contract.address,
-            //   eth(0.25)
-            // );
-
-            let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
-            expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth(1).mul(-1));
-            let laterContractBalance = await this.contract.balanceOf(this.contract.address);
-            expect(laterContractBalance.sub(previousContractBalance)).to.equal(eth(0.25));
+            let sellFee = 0.05;
+            await this.contract.connect(this.deployer).transfer(this.signers[15].address, eth(1_000_000));
+            expect(this.tokenPrice.toString()).to.equal('0.0000324');
+            let previousBalance = await ethers.provider.getBalance(this.signers[15].address);
+            await this.sell(this.signers[15], eth(1000000));
+            expect(await this.contract.balanceOf(this.signers[15].address)).to.equal(eth(0));
+            let newBalance = await ethers.provider.getBalance(this.signers[15].address);
+            let received = newBalance.sub(previousBalance);
+            let wouldReceive = ethFromDollar(1000_000 * (1 - sellFee) * this.tokenPrice);
+            expect(parseFloat(ethers.utils.formatEther(received))).to.be.closeTo(parseFloat(ethers.utils.formatEther(wouldReceive)), 1000);
+            let wouldReceivedWithoutFeeETH = ethFromDollar(1000_000 * this.tokenPrice);
+            let fees = wouldReceivedWithoutFeeETH.sub(received);
+            expect((fees / wouldReceivedWithoutFeeETH) - 0.04).to.be.closeTo(sellFee, 0.01)
+            expect(parseFloat(ethers.utils.formatEther(received))).to.be.closeTo(0.0081, 0.0001);
           });
-          xit('collect 5% of fees after 1000 buys', async function () {
-            await this.contract.updateBuyCount(1000);
-            await this.contract.connect(this.treasury).transfer(this.signers[15].address, eth(10));
-            let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
-            let previousContractBalance = await this.contract.balanceOf(this.contract.address);
-            await this.contract.connect(this.signers[15]).approve(this.uniswapRouter.address, eth(1));
-            await expect(this.uniswapRouter.connect(this.signers[15]).swapExactTokensForETHSupportingFeeOnTransferTokens(
-              eth(1),
-              0,
-              [this.contract.address, this.WETH.address],
-              this.signers[15].address,
-              (Date.now() + 1000 * 60 * 10),
-            )).to.emit(this.contract, 'Transfer').withArgs(
-              await this.contract.uniswapV2Pair(),
-              this.contract.address,
-              eth(0.05)
-            );
-
-            let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
-            expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth(1).mul(-1));
-            let laterContractBalance = await this.contract.balanceOf(this.contract.address);
-            expect(laterContractBalance.sub(previousContractBalance)).to.equal(eth(0.05));
+          it('collect 2% of fees after 1000 buys', async function () {
+            await this.contract.updateBuyCount(1200);
+            let sellFee = 0.02;
+            await this.contract.connect(this.deployer).transfer(this.signers[15].address, eth(1_000_000));
+            expect(this.tokenPrice.toString()).to.equal('0.0000324');
+            let previousBalance = await ethers.provider.getBalance(this.signers[15].address);
+            await this.sell(this.signers[15], eth(1000000));
+            expect(await this.contract.balanceOf(this.signers[15].address)).to.equal(eth(0));
+            let newBalance = await ethers.provider.getBalance(this.signers[15].address);
+            let received = newBalance.sub(previousBalance);
+            let wouldReceive = ethFromDollar(1000_000 * (1 - sellFee) * this.tokenPrice);
+            expect(parseFloat(ethers.utils.formatEther(received))).to.be.closeTo(parseFloat(ethers.utils.formatEther(wouldReceive)), 1000);
+            let wouldReceivedWithoutFeeETH = ethFromDollar(1000_000 * this.tokenPrice);
+            let fees = wouldReceivedWithoutFeeETH.sub(received);
+            expect((fees / wouldReceivedWithoutFeeETH) - 0.04).to.be.closeTo(sellFee, 0.01)
+            expect(parseFloat(ethers.utils.formatEther(received))).to.be.closeTo(0.0083, 0.0001);
           });
-          xit('do not collect fees after 1000 buys when wallet is excluded', async function () {
+          it('do not collect fees after 1000 buys when wallet is excluded', async function () {
             await this.contract.updateBuyCount(1000);
             await this.contract.excludeFromFees(this.signers[15].address, true);
-            await this.contract.connect(this.treasury).transfer(this.signers[15].address, eth(10));
-            let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
-            let previousContractBalance = await this.contract.balanceOf(this.contract.address);
-            await this.contract.connect(this.signers[15]).approve(this.uniswapRouter.address, eth(1));
-            await expect(this.uniswapRouter.connect(this.signers[15]).swapExactTokensForETHSupportingFeeOnTransferTokens(
-              eth(1),
-              0,
-              [this.contract.address, this.WETH.address],
-              this.signers[15].address,
-              (Date.now() + 1000 * 60 * 10),
-            )).to.emit(this.contract, 'Transfer').withArgs(
-              this.signers[15].address,
-              await this.contract.uniswapV2Pair(),
-              eth(1)
-            ); // these parameters are from the sell itself and not the fee
-
-            let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
-            expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth(1).mul(-1));
-            let laterContractBalance = await this.contract.balanceOf(this.contract.address);
-            expect(laterContractBalance.sub(previousContractBalance)).to.equal(eth(0));
+            await this.contract.connect(this.deployer).transfer(this.signers[15].address, eth(1_000_000));
+            expect(this.tokenPrice.toString()).to.equal('0.0000324');
+            let previousBalance = await ethers.provider.getBalance(this.signers[15].address);
+            await this.sell(this.signers[15], eth(1000000));
+            expect(await this.contract.balanceOf(this.signers[15].address)).to.equal(eth(0));
+            let newBalance = await ethers.provider.getBalance(this.signers[15].address);
+            let received = newBalance.sub(previousBalance);
+            let wouldReceivedWithoutFeeETH = ethFromDollar(1000_000 * this.tokenPrice);
+            expect(parseFloat(ethers.utils.formatEther(received))).to.be.closeTo(parseFloat(ethers.utils.formatEther(wouldReceivedWithoutFeeETH)), 1000);
+            expect(parseFloat(ethers.utils.formatEther(received))).to.be.closeTo(0.00862, 0.00001);
           });
         });
         describe("auto swap", function () {
