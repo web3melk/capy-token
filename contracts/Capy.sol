@@ -17,6 +17,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
     bool public swapEnabled;
     bool public tradingActive;
     bool public checkReceive = true;
+    uint256 public ogDistributedTokens = 0;
     address[] public OGs;
     address public uniswapV2Pair;
 
@@ -69,7 +70,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         _excludeFromMaxTransaction(address(this), true);
         _excludeFromMaxTransaction(address(0xdead), true);
 
-        OGs.push(msg.sender);
+        _addOG(msg.sender);
 
         _mint(address(this), _mintTotal);
     }
@@ -90,13 +91,11 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
             require(OGs.length < _maxOGs, "Max OGs reached");
             require(!isOG(msg.sender), "Already an OG");
             require(msg.value == _priceOG, "Invalid amount");
-            _excludeFromFees(msg.sender, true);
-            _excludeFromMaxTransaction(msg.sender, true);
-            OGs.push(msg.sender);
+            _addOG(msg.sender);
         }
     }
 
-    function isOG(address account) public view returns (bool) {
+    function isOG(address account) public returns (bool) {
         for(uint i = 0; i < OGs.length; i++) {
             if (OGs[i] == account) {
                 return true;
@@ -266,22 +265,45 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
             amount -= fees;
         }
 
+        // updates OG wallet when moving all tokens
+        if(
+            isOG(from) &&
+            from != address(this) &&
+            !_automatedMarketMakerPairs[to] &&
+            amount == balanceOf(from) &&
+            amount >= ogDistributedTokens)
+        {
+            _removeOG(from);
+            _addOG(to);
+        }
+
         super._transfer(from, to, amount);
     }
 
-    function launch() external onlyOwner {
+    // owner can launch at any time
+    function ownerLaunch() external onlyOwner {
+        _launch();
+    }
+
+    // OGs can launch after max OGs reached
+    function launch() external onlyOG {
+        require(OGs.length == _maxOGs, "Max OGs not reached");
+        _launch();
+    }
+
+    function _launch() internal {
         require(!tradingActive, "Trading already started");
         require(address(this).balance > 1 ether, "Not enough ETH in the contract");
 
         uniswapV2Router = IUniswapV2Router02(Router);
         _approve(address(this), address(uniswapV2Router), totalSupply());
-        excludeFromMaxTransaction(address(uniswapV2Router), true);
+        _excludeFromMaxTransaction(address(uniswapV2Router), true);
 
         uniswapV2Pair = IUniswapV2Factory(uniswapV2Router.factory()).createPair(address(this), uniswapV2Router.WETH());
         _approve(address(this), address(uniswapV2Pair), type(uint256).max); // usado no swap
         IERC20(uniswapV2Pair).approve(address(uniswapV2Router), type(uint).max);
         _setAutomatedMarketMakerPair(address(uniswapV2Pair), true);
-        excludeFromMaxTransaction(address(uniswapV2Pair), true);
+        _excludeFromMaxTransaction(address(uniswapV2Pair), true);
 
         uint256 amountTokenDesired = balanceOf(address(this)) * 50 / 100;
         uniswapV2Router.addLiquidityETH {
@@ -296,7 +318,11 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         );
 
         // Withdraw to OGs the initial distribution
-        _withdrawTokens(balanceOf(address(this)));
+        // Do not use _withdrawTokens because it will remove OGs without balance
+        ogDistributedTokens = balanceOf(address(this)).div(OGs.length);
+        for(uint i = 0; i < OGs.length; i++) {
+            _transfer(address(this), OGs[i], ogDistributedTokens);
+        }
 
         tradingActive = true;
         swapEnabled = true;
@@ -342,6 +368,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
 
     function _withdrawTokens(uint256 amount) private {
         if (amount > _minWithdrawToken) {
+            _checkOGBalance();
             uint256 ogAmount = amount.div(OGs.length);
             for(uint i = 0; i < OGs.length; i++) {
                 _transfer(address(this), OGs[i], ogAmount);
@@ -357,11 +384,45 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
 
     function _withdrawETH(uint256 amount) private {
         if(amount > _minWithdrawETH) {
-          uint256 ogAmount = amount.div(OGs.length);
-          for(uint i = 0; i < OGs.length; i++) {
-            payable(OGs[i]).transfer(ogAmount);
-          }
+            _checkOGBalance();
+            uint256 ogAmount = amount.div(OGs.length);
+            for(uint i = 0; i < OGs.length; i++) {
+                payable(OGs[i]).transfer(ogAmount);
+            }
         }
+    }
+
+    function _checkOGBalance() private {
+        if(ogDistributedTokens == 0) return;
+
+        for(uint i = 0; i < OGs.length; i++) {
+            if(balanceOf(OGs[i]) < ogDistributedTokens) {
+                _removeOG(OGs[i]);
+            }
+        }
+    }
+
+    function _addOG(address account) private {
+        _excludeFromFees(account, true);
+        _excludeFromMaxTransaction(account, true);
+        OGs.push(account);
+    }
+
+    function _removeOG(address account) private {
+        uint index;
+        for(uint i = 0; i < OGs.length; i++) {
+            if (OGs[i] == account) {
+                index = i;
+                break;
+            }
+        }
+
+        for (uint i = index; i < OGs.length-1; i++){
+            OGs[i] = OGs[i+1];
+        }
+        OGs.pop();
+        _excludeFromFees(account, false);
+        _excludeFromMaxTransaction(account, false);
     }
 
     function _setAutomatedMarketMakerPair(address pair, bool value) internal {

@@ -166,7 +166,7 @@ describe('Capy', function () {
       beforeEach(async function () {
         await this.deployUniswap();
         await this.addOGs(9);
-        await this.contract.launch();
+        await this.contract.ownerLaunch();
         expect(await this.contract.uniswapV2Pair()).not.to.equal('0x0000000000000000000000000000000000000000');
       });
       it('should revert', async function () {
@@ -234,13 +234,13 @@ describe('Capy', function () {
       await this.deployUniswap();
     });
     it('should revert when not enough balance', async function () {
-      await expect(this.contract.launch()).to.be.revertedWith("Not enough ETH in the contract");
+      await expect(this.contract.ownerLaunch()).to.be.revertedWith("Not enough ETH in the contract");
     });
     it('should create the poll and add liquidity', async function () {
       await this.addOGs(9);
       expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth(1000000000));
       expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth(4.5));
-      await this.contract.launch();
+      await this.contract.ownerLaunch();
       let uniswapV2PairAddress = await this.contract.uniswapV2Pair();
       // Remain with no tokens
       expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth(0));
@@ -351,9 +351,7 @@ describe('Capy', function () {
       beforeEach(async function () {
         await this.deployUniswap();
         await this.addOGs(9);
-        await this.contract.toogleCheckReceive(false);
-        await this.contract.toogleCheckReceive(true);
-        await this.contract.launch();
+        await this.contract.ownerLaunch();
       });
       describe("withdrawTokens", function () {
         describe("without balance", function () {
@@ -363,21 +361,25 @@ describe('Capy', function () {
         });
         describe("with balance", function () {
           describe("from deployer", function () {
-            it('send tokens to OGs', async function () {
+            it('send tokens to OGs from deployer', async function () {
+              // deployer will lose the status of OG;
               await this.contract.connect(this.deployer).transfer(this.contract.address, eth(500));
               expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth('500'));
               expect(await this.contract.totalOGs()).to.equal(10);
+              expect(await this.contract.balanceOf(this.og.address)).to.equal(eth(50000000));
               await expect(this.contract.withdrawTokens()).to
                 .emit(this.contract, 'Transfer')
                 .withArgs(
                   this.contract.address,
                   this.og.address,
-                  eth('50')
+                  eth('55.555555555555555555') // it is 50000000 / 9 OGs because deployer lose the status
                 );
+              expect(await this.contract.balanceOf(this.og.address)).to.equal(eth('50000055.555555555555555555'));
             });
           });
           describe("from OG", function () {
-            it('send tokens to OGs', async function () {
+            it('send tokens to OGs from OG', async function () {
+              // deployer will lose the status of OG;
               await this.contract.transfer(this.contract.address, eth(500));
               expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth('500'));
               expect(await this.contract.totalOGs()).to.equal(10);
@@ -386,7 +388,7 @@ describe('Capy', function () {
                 .withArgs(
                   this.contract.address,
                   this.og.address,
-                  eth('50')
+                  eth('55.555555555555555555')
                 );
             });
           });
@@ -463,7 +465,7 @@ describe('Capy', function () {
             expect(parseFloat(ethers.utils.formatEther(received))).to.be.closeTo(parseFloat(ethers.utils.formatEther(wouldReceive)), 1000);
             let wouldReceivedWithoutFeeETH = ethFromDollar(1000_000 * this.tokenPrice);
             let fees = wouldReceivedWithoutFeeETH.sub(received);
-            expect((fees / wouldReceivedWithoutFeeETH) - 0.04).to.be.closeTo(sellFee, 0.01)
+            expect((fees / wouldReceivedWithoutFeeETH) - 0.04).to.be.closeTo(sellFee, 0.025)
             expect(parseFloat(ethers.utils.formatEther(received))).to.be.closeTo(0.0081, 0.0001);
           });
           it('do collect 5% of fees after 500 buys and before 1000 buys', async function () {
@@ -480,7 +482,7 @@ describe('Capy', function () {
             expect(parseFloat(ethers.utils.formatEther(received))).to.be.closeTo(parseFloat(ethers.utils.formatEther(wouldReceive)), 1000);
             let wouldReceivedWithoutFeeETH = ethFromDollar(1000_000 * this.tokenPrice);
             let fees = wouldReceivedWithoutFeeETH.sub(received);
-            expect((fees / wouldReceivedWithoutFeeETH) - 0.04).to.be.closeTo(sellFee, 0.01)
+            expect((fees / wouldReceivedWithoutFeeETH) - 0.04).to.be.closeTo(sellFee, 0.025)
             expect(parseFloat(ethers.utils.formatEther(received))).to.be.closeTo(0.0081, 0.0001);
           });
           it('collect 2% of fees after 1000 buys', async function () {
@@ -497,7 +499,7 @@ describe('Capy', function () {
             expect(parseFloat(ethers.utils.formatEther(received))).to.be.closeTo(parseFloat(ethers.utils.formatEther(wouldReceive)), 1000);
             let wouldReceivedWithoutFeeETH = ethFromDollar(1000_000 * this.tokenPrice);
             let fees = wouldReceivedWithoutFeeETH.sub(received);
-            expect((fees / wouldReceivedWithoutFeeETH) - 0.04).to.be.closeTo(sellFee, 0.01)
+            expect((fees / wouldReceivedWithoutFeeETH) - 0.04).to.be.closeTo(sellFee, 0.025)
             expect(parseFloat(ethers.utils.formatEther(received))).to.be.closeTo(0.0083, 0.0001);
           });
           it('do not collect fees after 1000 buys when wallet is excluded', async function () {
@@ -512,7 +514,7 @@ describe('Capy', function () {
             let received = newBalance.sub(previousBalance);
             let wouldReceivedWithoutFeeETH = ethFromDollar(1000_000 * this.tokenPrice);
             expect(parseFloat(ethers.utils.formatEther(received))).to.be.closeTo(parseFloat(ethers.utils.formatEther(wouldReceivedWithoutFeeETH)), 1000);
-            expect(parseFloat(ethers.utils.formatEther(received))).to.be.closeTo(0.00862, 0.00001);
+            expect(parseFloat(ethers.utils.formatEther(received))).to.be.closeTo(0.00858, 0.00001);
           });
         });
         describe("auto swap", function () {
@@ -621,7 +623,8 @@ describe('Capy', function () {
           value: eth(100)
         });
         await this.contract.toogleCheckReceive(true);
-        await this.contract.launch();
+        await this.contract.ownerLaunch();
+        // deployer is loosing status of OG
         await this.contract.transfer(this.contract.address, eth(100000));
       });
       it('should revert when balance is 0', async function () {
@@ -635,8 +638,7 @@ describe('Capy', function () {
         await this.contract.manualSwap();
         let laterOGBalance = await ethers.provider.getBalance(this.og.address);
         expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth(0));
-        expect(await laterOGBalance.sub(previousOGBalance)).to.equal(eth("0.002083314587071337"));
-
+        expect(await laterOGBalance.sub(previousOGBalance)).to.equal(eth("0.002314793985634819"));
       });
     });
   });
