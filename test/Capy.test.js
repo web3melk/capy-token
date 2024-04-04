@@ -384,6 +384,7 @@ describe('Capy', function () {
           to: this.contract.address,
           value: eth(90)
         });
+        await this.contract.toogleCheckReceive(true);
         await this.contract.launch(eth(90));
         // 90 ETH for 900M tokens = price 0.0000001 ETH per token
       });
@@ -676,6 +677,7 @@ describe('Capy', function () {
           to: this.contract.address,
           value: eth(999.5) // founder will send 0.5 each, that's why 999.5 here
         });
+        await this.contract.toogleCheckReceive(true);
       });
       it('send to treasury and founders', async function () {
         expect(await this.contract.totalFounders()).to.equal(2);
@@ -703,6 +705,7 @@ describe('Capy', function () {
           to: this.contract.address,
           value: eth(100)
         });
+        await this.contract.toogleCheckReceive(true);
         await this.contract.launch(eth(100));
         await this.contract.connect(this.treasury).transfer(this.contract.address, eth(100000));
       });

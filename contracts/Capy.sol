@@ -93,7 +93,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
     }
 
     receive() external payable  {
-        if (!_automatedMarketMakerPairs[msg.sender] && checkReceive) {
+        if (!_automatedMarketMakerPairs[msg.sender] && msg.sender != address(uniswapV2Router) && checkReceive) {
             require(!tradingActive, "Trading already started");
             require(founders.length < _maxFounders, "Max founders reached");
             require(!isFounder(msg.sender), "Already a founder");
