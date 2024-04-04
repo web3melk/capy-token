@@ -181,21 +181,6 @@ describe('Capy', function () {
     });
   });
 
-  describe("setBlacklist", function () {
-    it('should block not owner', async function () {
-      await expect(this.contract.connect(this.notAdmin).setBlacklist('0x90F79bf6EB2c4f870365E785982E1f101E93b906', true)).to.be.revertedWith("Ownable: caller is not the owner");
-    });
-
-    it('should put and remove from blacklist', async function () {
-      expect(await this.contract.isBlacklisted('0x90F79bf6EB2c4f870365E785982E1f101E93b906')).to.equal(false);
-      await this.contract.setBlacklist('0x90F79bf6EB2c4f870365E785982E1f101E93b906', true);
-      expect(await this.contract.isBlacklisted('0x90F79bf6EB2c4f870365E785982E1f101E93b906')).to.equal(true);
-      await this.contract.setBlacklist('0x90F79bf6EB2c4f870365E785982E1f101E93b906', false);
-      expect(await this.contract.isBlacklisted('0x90F79bf6EB2c4f870365E785982E1f101E93b906')).to.equal(false);
-    });
-
-  });
-
   describe("toogleCheckReceive", function () {
     it('should block not owner', async function () {
       await expect(this.contract.connect(this.notAdmin).toogleCheckReceive(false)).to.be.revertedWith("Ownable: caller is not the owner");
@@ -438,30 +423,6 @@ describe('Capy', function () {
                     eth('500').mul(20).div(100)
                   );
               });
-            });
-          });
-        });
-
-        describe("blacklist", function () {
-          beforeEach(async function () {
-            await this.contract.connect(this.treasury).transfer(this.signers[4].address, eth(500));
-          });
-          describe("from address is blacklisted", function () {
-            beforeEach(async function () {
-              await this.contract.setBlacklist(this.signers[4].address, true);
-            });
-
-            it('revert transaction', async function () {
-              await expect(this.contract.connect(this.signers[4]).transfer(this.signers[5].address, eth(500))).to.be.revertedWith("Blacklisted");
-            });
-          });
-          describe("to address is  blacklisted", function () {
-            beforeEach(async function () {
-              await this.contract.setBlacklist(this.signers[5].address, true);
-            });
-
-            it('revert transaction', async function () {
-              await expect(this.contract.connect(this.signers[4]).transfer(this.signers[5].address, eth(500))).to.be.revertedWith("Blacklisted");
             });
           });
         });

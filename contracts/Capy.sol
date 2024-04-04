@@ -14,7 +14,6 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
     using SafeMath for uint256;
     mapping (address => bool) public isExcludedFromFees;
     mapping(address => bool) public isExcludedFromMaxTransaction;
-    mapping (address => bool) public isBlacklisted;
     bool public swapEnabled;
     bool public tradingActive;
     bool public checkReceive = true;
@@ -117,10 +116,6 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         return founders.length;
     }
 
-    function setBlacklist(address account, bool value) external onlyOwner {
-        isBlacklisted[account] = value;
-    }
-
     function excludeFromMaxTransaction(address account, bool value)
         public
         onlyOwner
@@ -214,7 +209,6 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
     ) internal override {
         require(from != address(0), "ERC20: transfer from the zero address");
         require(to != address(0), "ERC20: transfer to the zero address");
-        require(!isBlacklisted[to] && !isBlacklisted[from], "Blacklisted");
 
         if (amount == 0) {
             super._transfer(from, to, 0);
