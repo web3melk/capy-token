@@ -690,28 +690,4 @@ describe('Capy', function () {
       });
     });
   });
-  describe("emergencyWithdraw", function () {
-    beforeEach(async function () {
-      await this.addOGs(2);
-      await this.contract.connect(this.deployer).allowEmergencyWithdraw();
-    });
-    it('should not allow OG permit twice', async function () {
-      await expect(this.contract.connect(this.deployer).allowEmergencyWithdraw()).to.be.revertedWith("Already allowed");
-    })
-    describe("when majority of OGs allowed", function () {
-      it('send tokens to sender', async function () {
-        await this.contract.connect(this.og).allowEmergencyWithdraw();
-        expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth(1));
-        expect(await this.contract.emergencyWithdraw()).to.changeEtherBalance(this.deployer, eth(1));
-        expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth(0));
-      });
-    });
-    describe("when OGs did not allow", function () {
-      it('send tokens to sender', async function () {
-        expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth(1));
-        await expect(this.contract.emergencyWithdraw()).to.be.revertedWith("Not allowed by majority");
-        expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth(1));
-      });
-    });
-  });
 });

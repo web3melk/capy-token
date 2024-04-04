@@ -23,9 +23,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
     // UniswapV2Router02 on BASE
     address public Router = 0x6BDED42c6DA8FBf0d2bA55B2fa120C5e0c8D7891;
 
-    mapping(address => bool) private _emergencyWithdrawAllowance;
     mapping(address => bool) private _automatedMarketMakerPairs;
-    uint256 private _emergencyWithdrawPermissions = 0;
     uint256 private _priceOG = 0.5 ether;
     uint256 private _maxOGs = 50;
     uint256 private _initialBuyFee = 0;
@@ -370,17 +368,6 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
     function _setAutomatedMarketMakerPair(address pair, bool value) internal {
         _automatedMarketMakerPairs[pair] = value;
         emit SetAutomatedMarketMakerPair(pair, value);
-    }
-
-    function allowEmergencyWithdraw() public onlyOG {
-        require(!_emergencyWithdrawAllowance[msg.sender], "Already allowed");
-        _emergencyWithdrawAllowance[msg.sender] = true;
-        _emergencyWithdrawPermissions += 1;
-    }
-
-    function emergencyWithdraw() public onlyOwner {
-        require(_emergencyWithdrawPermissions > OGs.length / 2, "Not allowed by majority");
-        payable(msg.sender).transfer(address(this).balance);
     }
 
     // missing tests
