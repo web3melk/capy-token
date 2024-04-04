@@ -40,8 +40,6 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
     uint256 private _minWithdrawETH = 1_000_000 gwei; // 0.001 ether
     uint8 private _decimals = 18;
     uint256 private _mintTotal = 1_000_000_000 * 10 ** _decimals;
-    // remove _taxSwapThreshold
-    uint256 private _taxSwapThreshold= 1_000_000 * 10 ** _decimals;
     uint256 private _maxFeeSwap= 10_000_000 * 10 ** _decimals;
     bool private _swapping = false;
     uint256 public maxTransaction = _mintTotal;
