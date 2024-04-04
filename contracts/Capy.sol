@@ -127,15 +127,6 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         emit ExcludeFromLimits(account, value);
     }
 
-    function bulkExcludeFromMaxTransaction(
-        address[] calldata accounts,
-        bool value
-    ) public onlyOwner {
-        for (uint256 i = 0; i < accounts.length; i++) {
-            _excludeFromMaxTransaction(accounts[i], value);
-        }
-    }
-
     function excludeFromFees(address account, bool value) public onlyOwner {
         _excludeFromFees(account, value);
     }
@@ -143,22 +134,6 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
     function _excludeFromFees(address account, bool value) private {
         isExcludedFromFees[account] = value;
         emit ExcludeFromFees(account, value);
-    }
-
-
-    function bulkExcludeFromFees(address[] calldata accounts, bool value)
-        public
-        onlyOwner
-    {
-        for (uint256 i = 0; i < accounts.length; i++) {
-            _excludeFromFees(accounts[i], value);
-        }
-    }
-
-    // missing tests
-    function removeLimits() external onlyOwner{
-        limited = false;
-        maxWallet = totalSupply();
     }
 
     function setSwapEnabled(bool value) public onlyOwner {

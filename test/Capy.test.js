@@ -358,268 +358,263 @@ describe('Capy', function () {
         await this.contract.launch();
         // 90 ETH for 900M tokens = price 0.0000001 ETH per token
       });
-      describe("after remove limits", function () {
-        beforeEach(async function () {
-          await this.contract.removeLimits();
+      describe("withdrawTokens", function () {
+        describe("without balance", function () {
+          it('revert', async function () {
+            await expect(this.contract.withdrawTokens()).to.be.revertedWith("Not enough tokens to withdraw");
+          });
         });
-        describe("withdrawTokens", function () {
-          describe("without balance", function () {
-            it('revert', async function () {
-              await expect(this.contract.withdrawTokens()).to.be.revertedWith("Not enough tokens to withdraw");
+        describe("with balance", function () {
+          describe("from deployer", function () {
+            it('send tokens to OGs', async function () {
+              await this.contract.connect(this.deployer).transfer(this.contract.address, eth(500));
+              expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth('500'));
+              expect(await this.contract.totalOGs()).to.equal(10);
+              await expect(this.contract.withdrawTokens()).to
+                .emit(this.contract, 'Transfer')
+                .withArgs(
+                  this.contract.address,
+                  this.og.address,
+                  eth('50')
+                );
             });
           });
-          describe("with balance", function () {
-            describe("from deployer", function () {
-              it('send tokens to OGs', async function () {
-                await this.contract.connect(this.deployer).transfer(this.contract.address, eth(500));
-                expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth('500'));
-                expect(await this.contract.totalOGs()).to.equal(10);
-                await expect(this.contract.withdrawTokens()).to
-                  .emit(this.contract, 'Transfer')
-                  .withArgs(
-                    this.contract.address,
-                    this.og.address,
-                    eth('50')
-                  );
-              });
-            });
-            describe("from OG", function () {
-              it('send tokens to OGs', async function () {
-                await this.contract.transfer(this.contract.address, eth(500));
-                expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth('500'));
-                expect(await this.contract.totalOGs()).to.equal(10);
-                await expect(this.contract.connect(this.og).withdrawTokens()).to
-                  .emit(this.contract, 'Transfer')
-                  .withArgs(
-                    this.contract.address,
-                    this.og.address,
-                    eth('50')
-                  );
-              });
+          describe("from OG", function () {
+            it('send tokens to OGs', async function () {
+              await this.contract.transfer(this.contract.address, eth(500));
+              expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth('500'));
+              expect(await this.contract.totalOGs()).to.equal(10);
+              await expect(this.contract.connect(this.og).withdrawTokens()).to
+                .emit(this.contract, 'Transfer')
+                .withArgs(
+                  this.contract.address,
+                  this.og.address,
+                  eth('50')
+                );
             });
           });
         });
+      });
 
-        describe("fees", function () {
-          before(async function () {
-            this.buy = async function (wallet, amountEth) {
-              await this.uniswapRouter.connect(wallet).swapExactETHForTokensSupportingFeeOnTransferTokens(
-                eth(0),
-                [this.WETH.address, this.contract.address],
-                wallet.address,
-                (Date.now() + 1000 * 60 * 10),
-                {
-                  value: eth(amountEth)
-                }
-              );
-            };
-            this.sell = async function (wallet, amountToken) {
-              await this.contract.connect(wallet).approve(this.uniswapRouter.address, eth(amountToken));
-              await this.uniswapRouter.connect(wallet).swapExactTokensForETHSupportingFeeOnTransferTokens(
-                eth(amountToken),
-                0,
-                [this.contract.address, this.WETH.address],
-                wallet.address,
-                (Date.now() + 1000 * 60 * 10),
-              );
-            };
-          });
-          describe("buy", function () {
-            xit('collect no fees before 500 buys', async function () {
-              let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
-              await this.buy(this.signers[15], 0.00005);
-              let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
-              expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth("498.499723886541825065"));
-            });
-
-            xit('collect fees after 500 buys', async function () {
-              await this.contract.updateBuyCount(600);
-              let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
-              await expect(this.uniswapRouter.connect(this.signers[15]).swapExactETHForTokensSupportingFeeOnTransferTokens(
-                eth(0),
-                [this.WETH.address, this.contract.address],
-                this.signers[15].address,
-                (Date.now() + 1000 * 60 * 10),
-                {
-                  value: eth(0.00005)
-                }
-              )).to.emit(this.contract, 'Transfer').withArgs(
-                this.signers[15].address,
-                this.contract.address,
-                eth('24.924986194327091253')
-              );
-
-              let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
-              expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth("498.499723886541825065").sub(eth('24.924986194327091253')));
-            });
-            xit('do not collect fees after 500 buys when wallet is excluded', async function () {
-              await this.contract.updateBuyCount(600);
-              await this.contract.excludeFromFees(this.signers[15].address, true);
-              let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
-              await expect(this.uniswapRouter.connect(this.signers[15]).swapExactETHForTokensSupportingFeeOnTransferTokens(
-                eth(0),
-                [this.WETH.address, this.contract.address],
-                this.signers[15].address,
-                (Date.now() + 1000 * 60 * 10),
-                {
-                  value: eth(0.000005)
-                }
-              )).to.emit(this.contract, 'Transfer').withArgs(
-                await this.contract.uniswapV2Pair(),
-                this.signers[15].address,
-                eth('49.849997238864041825')
-              ); // these parameters are from the sell itself and not the fee
-
-              let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
-              expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth("49.849997238864041825"));
-            });
-          });
-          describe("sell", function () {
-            xit('collect 25% of fees before 1000 buys', async function () {
-              await this.contract.connect(this.treasury).transfer(this.signers[15].address, eth(10));
-              let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
-              let previousContractBalance = await this.contract.balanceOf(this.contract.address);
-              await this.contract.connect(this.signers[15]).approve(this.uniswapRouter.address, eth(1));
-              await expect(this.uniswapRouter.connect(this.signers[15]).swapExactTokensForETHSupportingFeeOnTransferTokens(
-                eth(1),
-                eth(0),
-                [this.contract.address, this.WETH.address],
-                this.signers[15].address,
-                (Date.now() + 1000 * 60 * 10),
-              )).to.emit(this.contract, 'Transfer').withArgs(
-                await this.contract.uniswapV2Pair(),
-                this.contract.address,
-                eth(0.25)
-              );
-
-              let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
-              expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth(1).mul(-1));
-              let laterContractBalance = await this.contract.balanceOf(this.contract.address);
-              expect(laterContractBalance.sub(previousContractBalance)).to.equal(eth(0.25));
-            });
-            xit('collect 25% of fees after 500 buys and before 1000 buys', async function () {
-              await this.contract.updateBuyCount(600);
-              await this.contract.connect(this.treasury).transfer(this.signers[15].address, eth(10));
-              let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
-              let previousContractBalance = await this.contract.balanceOf(this.contract.address);
-              await this.contract.connect(this.signers[15]).approve(this.uniswapRouter.address, eth(1));
-              await expect(this.uniswapRouter.connect(this.signers[15]).swapExactTokensForETHSupportingFeeOnTransferTokens(
-                eth(1),
-                0,
-                [this.contract.address, this.WETH.address],
-                this.signers[15].address,
-                (Date.now() + 1000 * 60 * 10),
-              ));
-              // .to.emit(this.contract, 'Transfer').withArgs(
-              //   await this.contract.uniswapV2Pair(),
-              //   this.contract.address,
-              //   eth(0.25)
-              // );
-
-              let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
-              expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth(1).mul(-1));
-              let laterContractBalance = await this.contract.balanceOf(this.contract.address);
-              expect(laterContractBalance.sub(previousContractBalance)).to.equal(eth(0.25));
-            });
-            xit('collect 5% of fees after 1000 buys', async function () {
-              await this.contract.updateBuyCount(1000);
-              await this.contract.connect(this.treasury).transfer(this.signers[15].address, eth(10));
-              let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
-              let previousContractBalance = await this.contract.balanceOf(this.contract.address);
-              await this.contract.connect(this.signers[15]).approve(this.uniswapRouter.address, eth(1));
-              await expect(this.uniswapRouter.connect(this.signers[15]).swapExactTokensForETHSupportingFeeOnTransferTokens(
-                eth(1),
-                0,
-                [this.contract.address, this.WETH.address],
-                this.signers[15].address,
-                (Date.now() + 1000 * 60 * 10),
-              )).to.emit(this.contract, 'Transfer').withArgs(
-                await this.contract.uniswapV2Pair(),
-                this.contract.address,
-                eth(0.05)
-              );
-
-              let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
-              expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth(1).mul(-1));
-              let laterContractBalance = await this.contract.balanceOf(this.contract.address);
-              expect(laterContractBalance.sub(previousContractBalance)).to.equal(eth(0.05));
-            });
-            xit('do not collect fees after 1000 buys when wallet is excluded', async function () {
-              await this.contract.updateBuyCount(1000);
-              await this.contract.excludeFromFees(this.signers[15].address, true);
-              await this.contract.connect(this.treasury).transfer(this.signers[15].address, eth(10));
-              let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
-              let previousContractBalance = await this.contract.balanceOf(this.contract.address);
-              await this.contract.connect(this.signers[15]).approve(this.uniswapRouter.address, eth(1));
-              await expect(this.uniswapRouter.connect(this.signers[15]).swapExactTokensForETHSupportingFeeOnTransferTokens(
-                eth(1),
-                0,
-                [this.contract.address, this.WETH.address],
-                this.signers[15].address,
-                (Date.now() + 1000 * 60 * 10),
-              )).to.emit(this.contract, 'Transfer').withArgs(
-                this.signers[15].address,
-                await this.contract.uniswapV2Pair(),
-                eth(1)
-              ); // these parameters are from the sell itself and not the fee
-
-              let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
-              expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth(1).mul(-1));
-              let laterContractBalance = await this.contract.balanceOf(this.contract.address);
-              expect(laterContractBalance.sub(previousContractBalance)).to.equal(eth(0));
-            });
-          });
-          describe("auto swap", function () {
-            beforeEach(async function () {
-              // after _preventSwapBefore
-              await this.contract.updateBuyCount(50);
-              // transfer minimum threshold that is 1_000_000
-              await this.contract.transfer(this.contract.address, eth(1_000_000));
-
-              await this.contract.transfer(this.signers[14].address, eth(10));
-              await this.contract.connect(this.signers[14]).approve(this.uniswapRouter.address, eth(1));
-            });
-            it('try to swap after trading started', async function () {
-              await this.uniswapRouter.connect(this.signers[14]).swapExactTokensForETHSupportingFeeOnTransferTokens(
-                eth(1),
-                0,
-                [this.contract.address, this.WETH.address],
-                this.signers[14].address,
-                (Date.now() + 1000 * 60 * 10),
-              );
-            });
-            it('not try to swap wen disabled', async function () {
-              await this.contract.setSwapEnabled(false);
-              await this.uniswapRouter.connect(this.signers[14]).swapExactTokensForETHSupportingFeeOnTransferTokens(
-                eth(1),
-                0,
-                [this.contract.address, this.WETH.address],
-                this.signers[14].address,
-                (Date.now() + 1000 * 60 * 10),
-              );
-              // await expect(this.uniswapRouter.connect(this.signers[14]).swapExactTokensForETHSupportingFeeOnTransferTokens(
-              //   eth(1),
-              //   0,
-              //   [this.contract.address, this.WETH.address],
-              //   this.signers[14].address,
-              //   (Date.now() + 1000 * 60 * 10),
-              // )).not.to.be.reverted;
-            });
-          });
-        });
-
-        it('from any address to another address', async function () {
-          await this.contract.transfer(this.signers[4].address, eth(500));
-          await expect(this.contract.connect(this.signers[4]).transfer(this.signers[5].address, eth(500))).to
-            .emit(this.contract, 'Transfer')
-            .withArgs(
-              this.signers[4].address,
-              this.signers[5].address,
-              eth(500)
+      describe("fees", function () {
+        before(async function () {
+          this.buy = async function (wallet, amountEth) {
+            await this.uniswapRouter.connect(wallet).swapExactETHForTokensSupportingFeeOnTransferTokens(
+              eth(0),
+              [this.WETH.address, this.contract.address],
+              wallet.address,
+              (Date.now() + 1000 * 60 * 10),
+              {
+                value: eth(amountEth)
+              }
             );
-          expect(await this.contract.balanceOf(this.signers[4].address)).to.equal(eth(0));
-          expect(await this.contract.balanceOf(this.signers[5].address)).to.equal(eth(500));
+          };
+          this.sell = async function (wallet, amountToken) {
+            await this.contract.connect(wallet).approve(this.uniswapRouter.address, eth(amountToken));
+            await this.uniswapRouter.connect(wallet).swapExactTokensForETHSupportingFeeOnTransferTokens(
+              eth(amountToken),
+              0,
+              [this.contract.address, this.WETH.address],
+              wallet.address,
+              (Date.now() + 1000 * 60 * 10),
+            );
+          };
         });
+        describe("buy", function () {
+          xit('collect no fees before 500 buys', async function () {
+            let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
+            await this.buy(this.signers[15], 0.00005);
+            let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
+            expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth("498.499723886541825065"));
+          });
+
+          xit('collect fees after 500 buys', async function () {
+            await this.contract.updateBuyCount(600);
+            let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
+            await expect(this.uniswapRouter.connect(this.signers[15]).swapExactETHForTokensSupportingFeeOnTransferTokens(
+              eth(0),
+              [this.WETH.address, this.contract.address],
+              this.signers[15].address,
+              (Date.now() + 1000 * 60 * 10),
+              {
+                value: eth(0.00005)
+              }
+            )).to.emit(this.contract, 'Transfer').withArgs(
+              this.signers[15].address,
+              this.contract.address,
+              eth('24.924986194327091253')
+            );
+
+            let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
+            expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth("498.499723886541825065").sub(eth('24.924986194327091253')));
+          });
+          xit('do not collect fees after 500 buys when wallet is excluded', async function () {
+            await this.contract.updateBuyCount(600);
+            await this.contract.excludeFromFees(this.signers[15].address, true);
+            let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
+            await expect(this.uniswapRouter.connect(this.signers[15]).swapExactETHForTokensSupportingFeeOnTransferTokens(
+              eth(0),
+              [this.WETH.address, this.contract.address],
+              this.signers[15].address,
+              (Date.now() + 1000 * 60 * 10),
+              {
+                value: eth(0.000005)
+              }
+            )).to.emit(this.contract, 'Transfer').withArgs(
+              await this.contract.uniswapV2Pair(),
+              this.signers[15].address,
+              eth('49.849997238864041825')
+            ); // these parameters are from the sell itself and not the fee
+
+            let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
+            expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth("49.849997238864041825"));
+          });
+        });
+        describe("sell", function () {
+          xit('collect 25% of fees before 1000 buys', async function () {
+            await this.contract.connect(this.treasury).transfer(this.signers[15].address, eth(10));
+            let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
+            let previousContractBalance = await this.contract.balanceOf(this.contract.address);
+            await this.contract.connect(this.signers[15]).approve(this.uniswapRouter.address, eth(1));
+            await expect(this.uniswapRouter.connect(this.signers[15]).swapExactTokensForETHSupportingFeeOnTransferTokens(
+              eth(1),
+              eth(0),
+              [this.contract.address, this.WETH.address],
+              this.signers[15].address,
+              (Date.now() + 1000 * 60 * 10),
+            )).to.emit(this.contract, 'Transfer').withArgs(
+              await this.contract.uniswapV2Pair(),
+              this.contract.address,
+              eth(0.25)
+            );
+
+            let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
+            expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth(1).mul(-1));
+            let laterContractBalance = await this.contract.balanceOf(this.contract.address);
+            expect(laterContractBalance.sub(previousContractBalance)).to.equal(eth(0.25));
+          });
+          xit('collect 25% of fees after 500 buys and before 1000 buys', async function () {
+            await this.contract.updateBuyCount(600);
+            await this.contract.connect(this.treasury).transfer(this.signers[15].address, eth(10));
+            let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
+            let previousContractBalance = await this.contract.balanceOf(this.contract.address);
+            await this.contract.connect(this.signers[15]).approve(this.uniswapRouter.address, eth(1));
+            await expect(this.uniswapRouter.connect(this.signers[15]).swapExactTokensForETHSupportingFeeOnTransferTokens(
+              eth(1),
+              0,
+              [this.contract.address, this.WETH.address],
+              this.signers[15].address,
+              (Date.now() + 1000 * 60 * 10),
+            ));
+            // .to.emit(this.contract, 'Transfer').withArgs(
+            //   await this.contract.uniswapV2Pair(),
+            //   this.contract.address,
+            //   eth(0.25)
+            // );
+
+            let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
+            expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth(1).mul(-1));
+            let laterContractBalance = await this.contract.balanceOf(this.contract.address);
+            expect(laterContractBalance.sub(previousContractBalance)).to.equal(eth(0.25));
+          });
+          xit('collect 5% of fees after 1000 buys', async function () {
+            await this.contract.updateBuyCount(1000);
+            await this.contract.connect(this.treasury).transfer(this.signers[15].address, eth(10));
+            let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
+            let previousContractBalance = await this.contract.balanceOf(this.contract.address);
+            await this.contract.connect(this.signers[15]).approve(this.uniswapRouter.address, eth(1));
+            await expect(this.uniswapRouter.connect(this.signers[15]).swapExactTokensForETHSupportingFeeOnTransferTokens(
+              eth(1),
+              0,
+              [this.contract.address, this.WETH.address],
+              this.signers[15].address,
+              (Date.now() + 1000 * 60 * 10),
+            )).to.emit(this.contract, 'Transfer').withArgs(
+              await this.contract.uniswapV2Pair(),
+              this.contract.address,
+              eth(0.05)
+            );
+
+            let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
+            expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth(1).mul(-1));
+            let laterContractBalance = await this.contract.balanceOf(this.contract.address);
+            expect(laterContractBalance.sub(previousContractBalance)).to.equal(eth(0.05));
+          });
+          xit('do not collect fees after 1000 buys when wallet is excluded', async function () {
+            await this.contract.updateBuyCount(1000);
+            await this.contract.excludeFromFees(this.signers[15].address, true);
+            await this.contract.connect(this.treasury).transfer(this.signers[15].address, eth(10));
+            let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
+            let previousContractBalance = await this.contract.balanceOf(this.contract.address);
+            await this.contract.connect(this.signers[15]).approve(this.uniswapRouter.address, eth(1));
+            await expect(this.uniswapRouter.connect(this.signers[15]).swapExactTokensForETHSupportingFeeOnTransferTokens(
+              eth(1),
+              0,
+              [this.contract.address, this.WETH.address],
+              this.signers[15].address,
+              (Date.now() + 1000 * 60 * 10),
+            )).to.emit(this.contract, 'Transfer').withArgs(
+              this.signers[15].address,
+              await this.contract.uniswapV2Pair(),
+              eth(1)
+            ); // these parameters are from the sell itself and not the fee
+
+            let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
+            expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth(1).mul(-1));
+            let laterContractBalance = await this.contract.balanceOf(this.contract.address);
+            expect(laterContractBalance.sub(previousContractBalance)).to.equal(eth(0));
+          });
+        });
+        describe("auto swap", function () {
+          beforeEach(async function () {
+            // after _preventSwapBefore
+            await this.contract.updateBuyCount(50);
+            // transfer minimum threshold that is 1_000_000
+            await this.contract.transfer(this.contract.address, eth(1_000_000));
+
+            await this.contract.transfer(this.signers[14].address, eth(10));
+            await this.contract.connect(this.signers[14]).approve(this.uniswapRouter.address, eth(1));
+          });
+          it('try to swap after trading started', async function () {
+            await this.uniswapRouter.connect(this.signers[14]).swapExactTokensForETHSupportingFeeOnTransferTokens(
+              eth(1),
+              0,
+              [this.contract.address, this.WETH.address],
+              this.signers[14].address,
+              (Date.now() + 1000 * 60 * 10),
+            );
+          });
+          it('not try to swap wen disabled', async function () {
+            await this.contract.setSwapEnabled(false);
+            await this.uniswapRouter.connect(this.signers[14]).swapExactTokensForETHSupportingFeeOnTransferTokens(
+              eth(1),
+              0,
+              [this.contract.address, this.WETH.address],
+              this.signers[14].address,
+              (Date.now() + 1000 * 60 * 10),
+            );
+            // await expect(this.uniswapRouter.connect(this.signers[14]).swapExactTokensForETHSupportingFeeOnTransferTokens(
+            //   eth(1),
+            //   0,
+            //   [this.contract.address, this.WETH.address],
+            //   this.signers[14].address,
+            //   (Date.now() + 1000 * 60 * 10),
+            // )).not.to.be.reverted;
+          });
+        });
+      });
+
+      it('from any address to another address', async function () {
+        await this.contract.transfer(this.signers[4].address, eth(500));
+        await expect(this.contract.connect(this.signers[4]).transfer(this.signers[5].address, eth(500))).to
+          .emit(this.contract, 'Transfer')
+          .withArgs(
+            this.signers[4].address,
+            this.signers[5].address,
+            eth(500)
+          );
+        expect(await this.contract.balanceOf(this.signers[4].address)).to.equal(eth(0));
+        expect(await this.contract.balanceOf(this.signers[5].address)).to.equal(eth(500));
       });
     });
   });
