@@ -17,7 +17,6 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
     bool public swapEnabled;
     bool public tradingActive;
     bool public checkReceive = true;
-    bool public limited = true;
     address[] public OGs;
     address public uniswapV2Pair;
 
@@ -27,6 +26,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
     mapping(address => bool) private _emergencyWithdrawAllowance;
     mapping(address => bool) private _automatedMarketMakerPairs;
     uint256 private _emergencyWithdrawPermissions = 0;
+    uint256 private _priceOG = 0.5 ether;
     uint256 private _maxOGs = 50;
     uint256 private _initialBuyFee = 0;
     uint256 private _initialSellFee = 25;
@@ -91,7 +91,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
             require(!tradingActive, "Trading already started");
             require(OGs.length < _maxOGs, "Max OGs reached");
             require(!isOG(msg.sender), "Already an OG");
-            require(msg.value == 0.5 ether, "Exatcly 0.5 ETH required");
+            require(msg.value == _priceOG, "Invalid amount");
             _excludeFromFees(msg.sender, true);
             _excludeFromMaxTransaction(msg.sender, true);
             OGs.push(msg.sender);

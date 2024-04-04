@@ -144,13 +144,13 @@ describe('Capy', function () {
         await expect(this.signers[2].sendTransaction({
           to: this.contract.address,
           value: eth(1)
-        })).to.be.revertedWith("Exatcly 0.5 ETH required");
+        })).to.be.revertedWith("Invalid amount");
       });
       it('when 0.4 eth should not add OG', async function () {
         await expect(this.signers[2].sendTransaction({
           to: this.contract.address,
           value: eth(0.4)
-        })).to.be.revertedWith("Exatcly 0.5 ETH required");
+        })).to.be.revertedWith("Invalid amount");
       });
       it('should not add same OG twice', async function () {
         await expect(this.deployer.sendTransaction({
