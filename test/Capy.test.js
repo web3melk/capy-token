@@ -32,9 +32,9 @@ describe('Capy', function () {
     this.deployer = this.signers[0]
     this.notAdmin = this.signers[1];
     this.treasury = this.signers[2];
-    this.founder = this.signers[3];
-    this.addFounders = async function (total) {
-      await this.founder.sendTransaction({
+    this.OG = this.signers[3];
+    this.addOGs = async function (total) {
+      await this.OG.sendTransaction({
         to: this.contract.address,
         value: eth(0.5)
       });
@@ -103,9 +103,9 @@ describe('Capy', function () {
     it('set treasury', async function () {
       expect(await this.contract.treasury()).to.equal(this.treasury.address);
     });
-    it('set deployer as founder', async function () {
-      expect(await this.contract.totalFounders()).to.equal(1);
-      expect(await this.contract.founders(0)).to.equal(this.deployer.address);
+    it('set deployer as OG', async function () {
+      expect(await this.contract.totalOGs()).to.equal(1);
+      expect(await this.contract.OGs(0)).to.equal(this.deployer.address);
     });
     it('mints 1 billion tokens tokens', async function () {
       expect((await this.contract.totalSupply())).to.equal('1000000000000000000000000000');
@@ -131,20 +131,20 @@ describe('Capy', function () {
         expect(await this.contract.uniswapV2Pair()).to.equal('0x0000000000000000000000000000000000000000');
       });
       it('when limit reached should revert', async function () {
-        await this.addFounders(49);
+        await this.addOGs(49);
         await expect(this.deployer.sendTransaction({
           to: this.contract.address,
           value: eth(0.5)
-        })).to.be.revertedWith("Max founders reached");
+        })).to.be.revertedWith("Max OGs reached");
       });
-      it('when 0.5 eth should add founder and exclude from fee', async function () {
-        expect(await this.contract.totalFounders()).to.equal(1);
+      it('when 0.5 eth should add OG and exclude from fee', async function () {
+        expect(await this.contract.totalOGs()).to.equal(1);
         await expect(this.signers[3].sendTransaction({
           to: this.contract.address,
           value: eth(0.5)
         })).to.emit(this.contract, 'ExcludeFromFees').withArgs(this.signers[3].address, true);
-        expect(await this.contract.totalFounders()).to.equal(2);
-        expect(await this.contract.founders(1)).to.equal(this.signers[3].address);
+        expect(await this.contract.totalOGs()).to.equal(2);
+        expect(await this.contract.OGs(1)).to.equal(this.signers[3].address);
       });
       it('when 1 eth should revert', async function () {
         await expect(this.signers[2].sendTransaction({
@@ -152,23 +152,23 @@ describe('Capy', function () {
           value: eth(1)
         })).to.be.revertedWith("Exatcly 0.5 ETH required");
       });
-      it('when 0.4 eth should not add founder', async function () {
+      it('when 0.4 eth should not add OG', async function () {
         await expect(this.signers[2].sendTransaction({
           to: this.contract.address,
           value: eth(0.4)
         })).to.be.revertedWith("Exatcly 0.5 ETH required");
       });
-      it('should not add same founder twice', async function () {
+      it('should not add same OG twice', async function () {
         await expect(this.deployer.sendTransaction({
           to: this.contract.address,
           value: eth(0.5)
-        })).to.be.revertedWith("Already a founder");
+        })).to.be.revertedWith("Already an OG");
       });
     });
     describe("pool already created", function () {
       beforeEach(async function () {
         await this.deployUniswap();
-        await this.addFounders(9);
+        await this.addOGs(9);
         await this.contract.launch(eth(2));
         expect(await this.contract.uniswapV2Pair()).not.to.equal('0x0000000000000000000000000000000000000000');
       });
@@ -254,7 +254,7 @@ describe('Capy', function () {
   describe("launch", function () {
     beforeEach(async function () {
       await this.deployUniswap();
-      await this.addFounders(9);
+      await this.addOGs(9);
     });
     it('should revert when not enough balance', async function () {
       await expect(this.contract.launch(eth(5))).to.be.revertedWith("Not enough ETH in the contract");
@@ -277,7 +277,7 @@ describe('Capy', function () {
       expect(await this.contract.balanceOf(uniswapV2PairAddress)).to.equal(eth(900000000));
       // Send 1% of tokens to treasury
       expect(await this.contract.balanceOf(this.treasury.address)).to.equal(eth(20000000));
-      // Send 4% of tokens to founders, total 10, so deployer receive 1/10 of 4%
+      // Send 4% of tokens to OGs, total 10, so deployer receive 1/10 of 4%
       expect(await this.contract.balanceOf(this.deployer.address)).to.equal(eth(8000000));
     });
   });
@@ -293,7 +293,7 @@ describe('Capy', function () {
         });
         describe("with balance", function () {
           describe("from deployer", function () {
-            it('send tokens to treasury and founders', async function () {
+            it('send tokens to treasury and OGs', async function () {
               expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth(1000000000));
               await expect(this.contract.withdrawTokens()).to
                 .emit(this.contract, 'Transfer')
@@ -307,9 +307,9 @@ describe('Capy', function () {
               expect(await this.contract.balanceOf(this.treasury.address)).to.equal(eth(200000000));
             });
           });
-          describe("from founder", function () {
+          describe("from OG", function () {
             it('should revert transaction', async function () {
-              await expect(this.contract.connect(this.founder).withdrawTokens()).to.be.revertedWith("caller is not the owner or founder after launch");
+              await expect(this.contract.connect(this.OG).withdrawTokens()).to.be.revertedWith("caller is not the owner or OG after launch");
             });
           });
         });
@@ -378,7 +378,7 @@ describe('Capy', function () {
     describe("trading started", function () {
       beforeEach(async function () {
         await this.deployUniswap();
-        await this.addFounders(9);
+        await this.addOGs(9);
         await this.contract.toogleCheckReceive(false);
         await this.signers[19].sendTransaction({
           to: this.contract.address,
@@ -400,7 +400,7 @@ describe('Capy', function () {
           });
           describe("with balance", function () {
             describe("from deployer", function () {
-              it('send tokens to treasury and founders', async function () {
+              it('send tokens to treasury and OGs', async function () {
                 await this.contract.connect(this.treasury).transfer(this.contract.address, eth(500));
                 expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth('500'));
                 await expect(this.contract.withdrawTokens()).to
@@ -412,11 +412,11 @@ describe('Capy', function () {
                   );
               });
             });
-            describe("from founder", function () {
-              it('send tokens to treasury and founders', async function () {
+            describe("from OG", function () {
+              it('send tokens to treasury and OGs', async function () {
                 await this.contract.connect(this.treasury).transfer(this.contract.address, eth(500));
                 expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth('500'));
-                await expect(this.contract.connect(this.founder).withdrawTokens()).to
+                await expect(this.contract.connect(this.OG).withdrawTokens()).to
                   .emit(this.contract, 'Transfer')
                   .withArgs(
                     this.contract.address,
@@ -454,15 +454,15 @@ describe('Capy', function () {
           });
           describe("buy", function () {
             it('collect no fees before 500 buys', async function () {
-              let previousFounderBalance = await this.contract.balanceOf(this.signers[15].address);
+              let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
               await this.buy(this.signers[15], 0.00005);
-              let laterFounderBalance = await this.contract.balanceOf(this.signers[15].address);
-              expect(laterFounderBalance.sub(previousFounderBalance)).to.equal(eth("498.499723886541825065"));
+              let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
+              expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth("498.499723886541825065"));
             });
 
             xit('collect fees after 500 buys', async function () {
               await this.contract.updateBuyCount(600);
-              let previousFounderBalance = await this.contract.balanceOf(this.signers[15].address);
+              let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
               await expect(this.uniswapRouter.connect(this.signers[15]).swapExactETHForTokensSupportingFeeOnTransferTokens(
                 eth(0),
                 [this.WETH.address, this.contract.address],
@@ -477,13 +477,13 @@ describe('Capy', function () {
                 eth('24.924986194327091253')
               );
 
-              let laterFounderBalance = await this.contract.balanceOf(this.signers[15].address);
-              expect(laterFounderBalance.sub(previousFounderBalance)).to.equal(eth("498.499723886541825065").sub(eth('24.924986194327091253')));
+              let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
+              expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth("498.499723886541825065").sub(eth('24.924986194327091253')));
             });
             xit('do not collect fees after 500 buys when wallet is excluded', async function () {
               await this.contract.updateBuyCount(600);
               await this.contract.excludeFromFees(this.signers[15].address, true);
-              let previousFounderBalance = await this.contract.balanceOf(this.signers[15].address);
+              let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
               await expect(this.uniswapRouter.connect(this.signers[15]).swapExactETHForTokensSupportingFeeOnTransferTokens(
                 eth(0),
                 [this.WETH.address, this.contract.address],
@@ -498,14 +498,14 @@ describe('Capy', function () {
                 eth('49.849997238864041825')
               ); // these parameters are from the sell itself and not the fee
 
-              let laterFounderBalance = await this.contract.balanceOf(this.signers[15].address);
-              expect(laterFounderBalance.sub(previousFounderBalance)).to.equal(eth("49.849997238864041825"));
+              let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
+              expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth("49.849997238864041825"));
             });
           });
           describe("sell", function () {
             xit('collect 25% of fees before 1000 buys', async function () {
               await this.contract.connect(this.treasury).transfer(this.signers[15].address, eth(10));
-              let previousFounderBalance = await this.contract.balanceOf(this.signers[15].address);
+              let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
               let previousContractBalance = await this.contract.balanceOf(this.contract.address);
               await this.contract.connect(this.signers[15]).approve(this.uniswapRouter.address, eth(1));
               await expect(this.uniswapRouter.connect(this.signers[15]).swapExactTokensForETHSupportingFeeOnTransferTokens(
@@ -520,15 +520,15 @@ describe('Capy', function () {
                 eth(0.25)
               );
 
-              let laterFounderBalance = await this.contract.balanceOf(this.signers[15].address);
-              expect(laterFounderBalance.sub(previousFounderBalance)).to.equal(eth(1).mul(-1));
+              let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
+              expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth(1).mul(-1));
               let laterContractBalance = await this.contract.balanceOf(this.contract.address);
               expect(laterContractBalance.sub(previousContractBalance)).to.equal(eth(0.25));
             });
             xit('collect 25% of fees after 500 buys and before 1000 buys', async function () {
               await this.contract.updateBuyCount(600);
               await this.contract.connect(this.treasury).transfer(this.signers[15].address, eth(10));
-              let previousFounderBalance = await this.contract.balanceOf(this.signers[15].address);
+              let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
               let previousContractBalance = await this.contract.balanceOf(this.contract.address);
               await this.contract.connect(this.signers[15]).approve(this.uniswapRouter.address, eth(1));
               await expect(this.uniswapRouter.connect(this.signers[15]).swapExactTokensForETHSupportingFeeOnTransferTokens(
@@ -544,15 +544,15 @@ describe('Capy', function () {
               //   eth(0.25)
               // );
 
-              let laterFounderBalance = await this.contract.balanceOf(this.signers[15].address);
-              expect(laterFounderBalance.sub(previousFounderBalance)).to.equal(eth(1).mul(-1));
+              let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
+              expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth(1).mul(-1));
               let laterContractBalance = await this.contract.balanceOf(this.contract.address);
               expect(laterContractBalance.sub(previousContractBalance)).to.equal(eth(0.25));
             });
             xit('collect 5% of fees after 1000 buys', async function () {
               await this.contract.updateBuyCount(1000);
               await this.contract.connect(this.treasury).transfer(this.signers[15].address, eth(10));
-              let previousFounderBalance = await this.contract.balanceOf(this.signers[15].address);
+              let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
               let previousContractBalance = await this.contract.balanceOf(this.contract.address);
               await this.contract.connect(this.signers[15]).approve(this.uniswapRouter.address, eth(1));
               await expect(this.uniswapRouter.connect(this.signers[15]).swapExactTokensForETHSupportingFeeOnTransferTokens(
@@ -567,8 +567,8 @@ describe('Capy', function () {
                 eth(0.05)
               );
 
-              let laterFounderBalance = await this.contract.balanceOf(this.signers[15].address);
-              expect(laterFounderBalance.sub(previousFounderBalance)).to.equal(eth(1).mul(-1));
+              let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
+              expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth(1).mul(-1));
               let laterContractBalance = await this.contract.balanceOf(this.contract.address);
               expect(laterContractBalance.sub(previousContractBalance)).to.equal(eth(0.05));
             });
@@ -576,7 +576,7 @@ describe('Capy', function () {
               await this.contract.updateBuyCount(1000);
               await this.contract.excludeFromFees(this.signers[15].address, true);
               await this.contract.connect(this.treasury).transfer(this.signers[15].address, eth(10));
-              let previousFounderBalance = await this.contract.balanceOf(this.signers[15].address);
+              let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
               let previousContractBalance = await this.contract.balanceOf(this.contract.address);
               await this.contract.connect(this.signers[15]).approve(this.uniswapRouter.address, eth(1));
               await expect(this.uniswapRouter.connect(this.signers[15]).swapExactTokensForETHSupportingFeeOnTransferTokens(
@@ -591,8 +591,8 @@ describe('Capy', function () {
                 eth(1)
               ); // these parameters are from the sell itself and not the fee
 
-              let laterFounderBalance = await this.contract.balanceOf(this.signers[15].address);
-              expect(laterFounderBalance.sub(previousFounderBalance)).to.equal(eth(1).mul(-1));
+              let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
+              expect(laterOGBalance.sub(previousOGBalance)).to.equal(eth(1).mul(-1));
               let laterContractBalance = await this.contract.balanceOf(this.contract.address);
               expect(laterContractBalance.sub(previousContractBalance)).to.equal(eth(0));
             });
@@ -660,10 +660,10 @@ describe('Capy', function () {
     });
     describe("with low balance", function () {
       beforeEach(async function () {
-        await this.addFounders(2);
+        await this.addOGs(2);
       });
       it('revert with low balance', async function () {
-        expect(await this.contract.totalFounders()).to.equal(3);
+        expect(await this.contract.totalOGs()).to.equal(3);
         await this.contract.withdrawETH();
         expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth('0.000000000000000002'));
         await expect(this.contract.withdrawETH()).to.be.revertedWith("Not enough ETH to withdraw");
@@ -671,35 +671,35 @@ describe('Capy', function () {
     });
     describe("with enough balance", function () {
       beforeEach(async function () {
-        await this.addFounders(1); // founders ill send 0.5
+        await this.addOGs(1); // OGs ill send 0.5
         await this.contract.toogleCheckReceive(false);
         await this.signers[4].sendTransaction({
           to: this.contract.address,
-          value: eth(999.5) // founder will send 0.5 each, that's why 999.5 here
+          value: eth(999.5) // OG will send 0.5 each, that's why 999.5 here
         });
         await this.contract.toogleCheckReceive(true);
       });
-      it('send to treasury and founders', async function () {
-        expect(await this.contract.totalFounders()).to.equal(2);
+      it('send to treasury and OGs', async function () {
+        expect(await this.contract.totalOGs()).to.equal(2);
         expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth(1000));
         let previousTreasuryBalance = await ethers.provider.getBalance(this.treasury.address);
-        let previousFounderBalance = await ethers.provider.getBalance(this.founder.address);
+        let previousOGBalance = await ethers.provider.getBalance(this.OG.address);
         await this.contract.withdrawETH();
         expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth(0));
         expect(await ethers.provider.getBalance(this.treasury.address)).to.equal(previousTreasuryBalance.add(eth(200)));
-        expect(await ethers.provider.getBalance(this.founder.address)).to.equal(previousFounderBalance.add(eth(400))); // 400 to founder and 400 to deployer
+        expect(await ethers.provider.getBalance(this.OG.address)).to.equal(previousOGBalance.add(eth(400))); // 400 to OG and 400 to deployer
       });
     });
   });
 
   describe("manualSwap", function () {
-    it('should block not founder', async function () {
-      await expect(this.contract.connect(this.notAdmin).manualSwap()).to.be.revertedWith("caller is not the owner or founder after launch");
+    it('should block not OG', async function () {
+      await expect(this.contract.connect(this.notAdmin).manualSwap()).to.be.revertedWith("caller is not the owner or OG after launch");
     });
-    describe("when founder", function () {
+    describe("when OG", function () {
       beforeEach(async function () {
         await this.deployUniswap();
-        await this.addFounders(9);
+        await this.addOGs(9);
         await this.contract.toogleCheckReceive(false);
         await this.deployer.sendTransaction({
           to: this.contract.address,
@@ -716,34 +716,34 @@ describe('Capy', function () {
       it('should swap tokens', async function () {
         expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth(100000));
         expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth(0));
-        let previousFounderBalance = await ethers.provider.getBalance(this.founder.address);
+        let previousOGBalance = await ethers.provider.getBalance(this.OG.address);
         let previousTreasuryBalance = await ethers.provider.getBalance(this.treasury.address);
         await this.contract.manualSwap();
-        let laterFounderBalance = await ethers.provider.getBalance(this.founder.address);
+        let laterOGBalance = await ethers.provider.getBalance(this.OG.address);
         let laterTreasuryBalance = await ethers.provider.getBalance(this.treasury.address);
         expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth(0));
-        expect(await laterFounderBalance.sub(previousFounderBalance)).to.equal(eth("0.00088612405936809"));
+        expect(await laterOGBalance.sub(previousOGBalance)).to.equal(eth("0.00088612405936809"));
         expect(await laterTreasuryBalance.sub(previousTreasuryBalance)).to.equal(eth("0.002215310148420225")); // 20% of 0.000000221555531012
       });
     });
   });
   describe("emergencyWithdraw", function () {
     beforeEach(async function () {
-      await this.addFounders(2);
+      await this.addOGs(2);
       await this.contract.connect(this.deployer).allowEmergencyWithdraw();
     });
-    it('should not allow founder permit twice', async function () {
+    it('should not allow OG permit twice', async function () {
       await expect(this.contract.connect(this.deployer).allowEmergencyWithdraw()).to.be.revertedWith("Already allowed");
     })
-    describe("when majority of founders allowed", function () {
+    describe("when majority of OGs allowed", function () {
       it('send tokens to sender', async function () {
-        await this.contract.connect(this.founder).allowEmergencyWithdraw();
+        await this.contract.connect(this.OG).allowEmergencyWithdraw();
         expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth(1));
         expect(await this.contract.emergencyWithdraw()).to.changeEtherBalance(this.deployer, eth(1));
         expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth(0));
       });
     });
-    describe("when founders did not allow", function () {
+    describe("when OGs did not allow", function () {
       it('send tokens to sender', async function () {
         expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth(1));
         await expect(this.contract.emergencyWithdraw()).to.be.revertedWith("Not allowed by majority");
