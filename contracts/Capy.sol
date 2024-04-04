@@ -19,7 +19,6 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
     bool public checkReceive = true;
     bool public limited = true;
     address[] public OGs;
-    address public treasury;
     address public uniswapV2Pair;
 
     // UniswapV2Router02 on BASE
@@ -62,20 +61,17 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
 
     event SetAutomatedMarketMakerPair(address indexed pair, bool indexed value);
 
-    constructor(address _treasury)
+    constructor()
         ERC20("Capybase Society Token", "CAPY")
         Ownable()
     {
-        treasury = _treasury;
         _excludeFromFees(msg.sender, true);
         _excludeFromFees(address(this), true);
         _excludeFromFees(address(0xdead), true);
-        _excludeFromFees(treasury, true);
 
         _excludeFromMaxTransaction(msg.sender, true);
         _excludeFromMaxTransaction(address(this), true);
         _excludeFromMaxTransaction(address(0xdead), true);
-        _excludeFromMaxTransaction(treasury, true);
 
         OGs.push(msg.sender);
 
@@ -98,8 +94,9 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
             require(OGs.length < _maxOGs, "Max OGs reached");
             require(!isOG(msg.sender), "Already an OG");
             require(msg.value == 0.5 ether, "Exatcly 0.5 ETH required");
-            OGs.push(msg.sender);
             _excludeFromFees(msg.sender, true);
+            _excludeFromMaxTransaction(msg.sender, true);
+            OGs.push(msg.sender);
         }
     }
 
@@ -230,12 +227,6 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
                 );
             }
 
-            // Only allows buys from OGs when limited
-            if (limited && _automatedMarketMakerPairs[from]) {  // has to be the LP
-                require(balanceOf(to) + amount <= maxWallet, "Forbid");
-                require(isOG(from) || isOG(to), "Forbid");
-            }
-
             // test maxTransaction and maxWallet
             // when buy
             if (
@@ -308,9 +299,9 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         super._transfer(from, to, amount);
     }
 
-    function launch(uint256 amount) external onlyOwner {
+    function launch() external onlyOwner {
         require(!tradingActive, "Trading already started");
-        require(address(this).balance >= amount, "Not enough ETH in the contract");
+        require(address(this).balance > 1 ether, "Not enough ETH in the contract");
 
         uniswapV2Router = IUniswapV2Router02(Router);
         _approve(address(this), address(uniswapV2Router), totalSupply());
@@ -322,10 +313,9 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         _setAutomatedMarketMakerPair(address(uniswapV2Pair), true);
         excludeFromMaxTransaction(address(uniswapV2Pair), true);
 
-        uint256 initialDistribution = balanceOf(address(this)) * 10 / 100;
-        uint256 amountTokenDesired = balanceOf(address(this)) - initialDistribution;
+        uint256 amountTokenDesired = balanceOf(address(this)) * 50 / 100;
         uniswapV2Router.addLiquidityETH {
-          value: amount
+          value: address(this).balance
         }(
           address(this), // token
           amountTokenDesired, // amountTokenDesired
@@ -335,11 +325,8 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
           block.timestamp // deadline
         );
 
-        // Withdraw to treasury and OGs the initial distribution
-        _withdrawTokens(initialDistribution);
-
-        // Withdraw to treasury the remaining ETH
-        payable(treasury).transfer(address(this).balance);
+        // Withdraw to OGs the initial distribution
+        _withdrawTokens(balanceOf(address(this)));
 
         tradingActive = true;
         swapEnabled = true;
@@ -347,15 +334,6 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
 
     function setRouter(address router) external onlyOwner {
         Router = router;
-    }
-
-    function updateTreasury(address account) public {
-        require(treasury == msg.sender, "caller is not the treasury owner");
-        require(account != address(0), "Cannot set treasury to the zero address");
-        require(account != address(this), "Cannot set treasury to the contract address");
-        delete isExcludedFromFees[treasury]; // delete current treasury
-        treasury = account;
-        _excludeFromFees(treasury, true); // add the new treasury
     }
 
     function manualSwap() external onlyOGAfterLaunchOrOwner {
@@ -382,7 +360,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
             block.timestamp // Unix timestamp after which the transaction will revert.
         );
 
-        // send ETH to treasury and OGs
+        // send ETH to OGs
         _withdrawETH(address(this).balance);
     }
 
@@ -394,11 +372,10 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
 
     function _withdrawTokens(uint256 amount) private {
         if (amount > _minWithdrawToken) {
-            uint256 ogAmount = amount.mul(80).div(100).div(OGs.length);
+            uint256 ogAmount = amount.div(OGs.length);
             for(uint i = 0; i < OGs.length; i++) {
                 _transfer(address(this), OGs[i], ogAmount);
             }
-            _transfer(address(this), treasury, amount.mul(20).div(100));
         }
     }
 
@@ -410,11 +387,10 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
 
     function _withdrawETH(uint256 amount) private {
         if(amount > _minWithdrawETH) {
-          uint256 ogAmount = amount.mul(80).div(100).div(OGs.length);
+          uint256 ogAmount = amount.div(OGs.length);
           for(uint i = 0; i < OGs.length; i++) {
             payable(OGs[i]).transfer(ogAmount);
           }
-          payable(treasury).transfer(amount.mul(20).div(100));
         }
     }
 

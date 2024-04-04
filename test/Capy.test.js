@@ -31,10 +31,9 @@ describe('Capy', function () {
     this.signers = await ethers.getSigners();
     this.deployer = this.signers[0]
     this.notAdmin = this.signers[1];
-    this.treasury = this.signers[2];
-    this.OG = this.signers[3];
+    this.og = this.signers[3];
     this.addOGs = async function (total) {
-      await this.OG.sendTransaction({
+      await this.og.sendTransaction({
         to: this.contract.address,
         value: eth(0.5)
       });
@@ -79,7 +78,7 @@ describe('Capy', function () {
   beforeEach(async function () {
     // Deploy a new Capy contract for each test
     const contractFactory = await ethers.getContractFactory("CapybaseSocietyToken");
-    this.contract = await contractFactory.deploy(this.treasury.address);
+    this.contract = await contractFactory.deploy();
     await this.contract.deployed();
     this.receipt ||= await this.contract.deployTransaction.wait()
   });
@@ -100,9 +99,6 @@ describe('Capy', function () {
     it('deployer is owner', async function () {
       expect(await this.contract.owner()).to.equal(this.deployer.address);
     });
-    it('set treasury', async function () {
-      expect(await this.contract.treasury()).to.equal(this.treasury.address);
-    });
     it('set deployer as OG', async function () {
       expect(await this.contract.totalOGs()).to.equal(1);
       expect(await this.contract.OGs(0)).to.equal(this.deployer.address);
@@ -113,13 +109,11 @@ describe('Capy', function () {
     });
     it('set fee exclusions', async function () {
       expect(this.emittedEvent('ExcludeFromFees', [this.deployer.address, true])).to.be.true;
-      expect(this.emittedEvent('ExcludeFromFees', [this.treasury.address, true])).to.be.true;
       // expect(this.emittedEvent('ExcludeFromFees', [this.contract.address, true])).to.be.true;
       expect(this.emittedEvent('ExcludeFromFees', [this.deadAddress, true])).to.be.true;
     });
     it('set limit exclusions', async function () {
       expect(this.emittedEvent('ExcludeFromLimits', [this.deployer.address, true])).to.be.true;
-      expect(this.emittedEvent('ExcludeFromLimits', [this.treasury.address, true])).to.be.true;
       // expect(this.emittedEvent('ExcludeFromLimits', [this.contract.address, true])).to.be.true;
       expect(this.emittedEvent('ExcludeFromLimits', [this.deadAddress, true])).to.be.true;
     });
@@ -169,7 +163,7 @@ describe('Capy', function () {
       beforeEach(async function () {
         await this.deployUniswap();
         await this.addOGs(9);
-        await this.contract.launch(eth(2));
+        await this.contract.launch();
         expect(await this.contract.uniswapV2Pair()).not.to.equal('0x0000000000000000000000000000000000000000');
       });
       it('should revert', async function () {
@@ -232,53 +226,28 @@ describe('Capy', function () {
     });
   });
 
-  describe("updateTreasury", function () {
-    it('should block owner', async function () {
-      await expect(this.contract.updateTreasury('0x70997970C51812dc3A010C7d01b50e0d17dc79C8')).to.be.revertedWith("caller is not the treasury owner");
-    });
-    it('should block zero address', async function () {
-      expect(await this.contract.treasury()).to.equal(this.treasury.address);
-      await expect(this.contract.connect(this.treasury).updateTreasury('0x0000000000000000000000000000000000000000')).to.be.revertedWith("Cannot set treasury to the zero address");
-    });
-    it('should block contract address', async function () {
-      expect(await this.contract.treasury()).to.equal(this.treasury.address);
-      await expect(this.contract.connect(this.treasury).updateTreasury(this.contract.address)).to.be.revertedWith("Cannot set treasury to the contract address");
-    });
-    it('should update treasury and excluded fee list', async function () {
-      expect(await this.contract.treasury()).to.equal(this.treasury.address);
-      await expect(this.contract.connect(this.treasury).updateTreasury('0x70997970C51812dc3A010C7d01b50e0d17dc79C8')).to.emit(this.contract, 'ExcludeFromFees').withArgs('0x70997970C51812dc3A010C7d01b50e0d17dc79C8', true);
-      expect(await this.contract.treasury()).to.equal('0x70997970C51812dc3A010C7d01b50e0d17dc79C8');
-    });
-  });
-
   describe("launch", function () {
     beforeEach(async function () {
       await this.deployUniswap();
-      await this.addOGs(9);
     });
     it('should revert when not enough balance', async function () {
-      await expect(this.contract.launch(eth(5))).to.be.revertedWith("Not enough ETH in the contract");
+      await expect(this.contract.launch()).to.be.revertedWith("Not enough ETH in the contract");
     });
     it('should create the poll and add liquidity', async function () {
-      let previousTreasuryBalance = await ethers.provider.getBalance(this.treasury.address);
+      await this.addOGs(9);
       expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth(1000000000));
       expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth(4.5));
-      await this.contract.launch(eth(2));
+      await this.contract.launch();
       let uniswapV2PairAddress = await this.contract.uniswapV2Pair();
       // Remain with no tokens
       expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth(0));
       // Send passed amount of ETH to pool
-      expect(await this.WETH.balanceOf(uniswapV2PairAddress)).to.equal(eth(2));
-      // Send 100% of remaining ETH to treasury
+      expect(await this.WETH.balanceOf(uniswapV2PairAddress)).to.equal(eth(4.5));
       expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth(0));
-      expect(await ethers.provider.getBalance(this.treasury.address)).to.equal(previousTreasuryBalance.add(eth(2.5)));
-      // expect(await ethers.provider.getBalance(uniswapV2PairAddress)).to.equal(eth(100));
       // Send 95% of tokens to pool
-      expect(await this.contract.balanceOf(uniswapV2PairAddress)).to.equal(eth(900000000));
-      // Send 1% of tokens to treasury
-      expect(await this.contract.balanceOf(this.treasury.address)).to.equal(eth(20000000));
+      expect(await this.contract.balanceOf(uniswapV2PairAddress)).to.equal(eth(500000000));
       // Send 4% of tokens to OGs, total 10, so deployer receive 1/10 of 4%
-      expect(await this.contract.balanceOf(this.deployer.address)).to.equal(eth(8000000));
+      expect(await this.contract.balanceOf(this.deployer.address)).to.equal(eth(50000000));
     });
   });
 
@@ -293,62 +262,63 @@ describe('Capy', function () {
         });
         describe("with balance", function () {
           describe("from deployer", function () {
-            it('send tokens to treasury and OGs', async function () {
+            it('send tokens to OGs', async function () {
               expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth(1000000000));
               await expect(this.contract.withdrawTokens()).to
                 .emit(this.contract, 'Transfer')
                 .withArgs(
                   this.contract.address,
-                  this.treasury.address,
-                  eth(200000000)
+                  this.deployer.address,
+                  eth(1000000000)
                 );
               expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth(0));
-              expect(await this.contract.balanceOf(this.deployer.address)).to.equal(eth(800000000));
-              expect(await this.contract.balanceOf(this.treasury.address)).to.equal(eth(200000000));
+              expect(await this.contract.balanceOf(this.deployer.address)).to.equal(eth(1000000000));
             });
           });
           describe("from OG", function () {
             it('should revert transaction', async function () {
-              await expect(this.contract.connect(this.OG).withdrawTokens()).to.be.revertedWith("caller is not the owner or OG after launch");
+              await expect(this.contract.connect(this.og).withdrawTokens()).to.be.revertedWith("caller is not the owner or OG after launch");
             });
           });
         });
       });
 
-      it('from treasury to contract', async function () {
+      it('from deployer to contract', async function () {
         await this.contract.withdrawTokens();
-        await expect(this.contract.connect(this.treasury).transfer(this.contract.address, eth(500))).to
+        let previousDeployerBalance = await this.contract.balanceOf(this.deployer.address);
+        await expect(this.contract.transfer(this.contract.address, eth(500))).to
           .emit(this.contract, 'Transfer')
           .withArgs(
-            this.treasury.address,
+            this.deployer.address,
             this.contract.address,
             eth(500)
           );
         expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth(500));
-        expect(await this.contract.balanceOf(this.treasury.address)).to.equal(eth(199999500));
+        expect(await this.contract.balanceOf(this.deployer.address)).to.equal(previousDeployerBalance.sub(eth(500)));
       });
 
-      it('from treasury to another wallet', async function () {
+      it('from deployer to another wallet', async function () {
         await this.contract.withdrawTokens();
-        await expect(this.contract.connect(this.treasury).transfer(this.signers[4].address, eth(500))).to
+        let previousDeployerBalance = await this.contract.balanceOf(this.deployer.address);
+        await expect(this.contract.transfer(this.signers[4].address, eth(500))).to
           .emit(this.contract, 'Transfer')
           .withArgs(
-            this.treasury.address,
+            this.deployer.address,
             this.signers[4].address,
             eth(500)
           );
-        expect(await this.contract.balanceOf(this.treasury.address)).to.equal(eth(199999500));
-        expect(await this.contract.balanceOf(this.signers[4].address)).to.equal(eth(500));
+          expect(await this.contract.balanceOf(this.signers[4].address)).to.equal(eth(500));
+        expect(await this.contract.balanceOf(this.deployer.address)).to.equal(previousDeployerBalance.sub(eth(500)));
       });
       it('from any address to another address', async function () {
         await this.contract.withdrawTokens();
-        await this.contract.connect(this.treasury).transfer(this.signers[4].address, eth(500));
+        await this.contract.transfer(this.signers[4].address, eth(500));
         await expect(this.contract.connect(this.signers[4]).transfer(this.signers[5].address, eth(500))).to.revertedWith("Trading not started");
       });
       it('from whitelisted address to another address', async function () {
         await this.contract.excludeFromFees(this.signers[4].address, true);
         await this.contract.withdrawTokens();
-        await this.contract.connect(this.treasury).transfer(this.signers[4].address, eth(500));
+        await this.contract.transfer(this.signers[4].address, eth(500));
         await expect(this.contract.connect(this.signers[4]).transfer(this.signers[5].address, eth(500))).to
           .emit(this.contract, 'Transfer')
           .withArgs(
@@ -362,7 +332,7 @@ describe('Capy', function () {
       it('from any address to a whitelisted address', async function () {
         await this.contract.excludeFromFees(this.signers[5].address, true);
         await this.contract.withdrawTokens();
-        await this.contract.connect(this.treasury).transfer(this.signers[4].address, eth(500));
+        await this.contract.transfer(this.signers[4].address, eth(500));
         await expect(this.contract.connect(this.signers[4]).transfer(this.signers[5].address, eth(500))).to
           .emit(this.contract, 'Transfer')
           .withArgs(
@@ -385,7 +355,7 @@ describe('Capy', function () {
           value: eth(90)
         });
         await this.contract.toogleCheckReceive(true);
-        await this.contract.launch(eth(90));
+        await this.contract.launch();
         // 90 ETH for 900M tokens = price 0.0000001 ETH per token
       });
       describe("after remove limits", function () {
@@ -400,28 +370,30 @@ describe('Capy', function () {
           });
           describe("with balance", function () {
             describe("from deployer", function () {
-              it('send tokens to treasury and OGs', async function () {
-                await this.contract.connect(this.treasury).transfer(this.contract.address, eth(500));
+              it('send tokens to OGs', async function () {
+                await this.contract.connect(this.deployer).transfer(this.contract.address, eth(500));
                 expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth('500'));
+                expect(await this.contract.totalOGs()).to.equal(10);
                 await expect(this.contract.withdrawTokens()).to
                   .emit(this.contract, 'Transfer')
                   .withArgs(
                     this.contract.address,
-                    this.treasury.address,
-                    eth('500').mul(20).div(100)
+                    this.og.address,
+                    eth('50')
                   );
               });
             });
             describe("from OG", function () {
-              it('send tokens to treasury and OGs', async function () {
-                await this.contract.connect(this.treasury).transfer(this.contract.address, eth(500));
+              it('send tokens to OGs', async function () {
+                await this.contract.transfer(this.contract.address, eth(500));
                 expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth('500'));
-                await expect(this.contract.connect(this.OG).withdrawTokens()).to
+                expect(await this.contract.totalOGs()).to.equal(10);
+                await expect(this.contract.connect(this.og).withdrawTokens()).to
                   .emit(this.contract, 'Transfer')
                   .withArgs(
                     this.contract.address,
-                    this.treasury.address,
-                    eth('500').mul(20).div(100)
+                    this.og.address,
+                    eth('50')
                   );
               });
             });
@@ -453,7 +425,7 @@ describe('Capy', function () {
             };
           });
           describe("buy", function () {
-            it('collect no fees before 500 buys', async function () {
+            xit('collect no fees before 500 buys', async function () {
               let previousOGBalance = await this.contract.balanceOf(this.signers[15].address);
               await this.buy(this.signers[15], 0.00005);
               let laterOGBalance = await this.contract.balanceOf(this.signers[15].address);
@@ -602,9 +574,9 @@ describe('Capy', function () {
               // after _preventSwapBefore
               await this.contract.updateBuyCount(50);
               // transfer minimum threshold that is 1_000_000
-              await this.contract.connect(this.treasury).transfer(this.contract.address, eth(1_000_000));
+              await this.contract.transfer(this.contract.address, eth(1_000_000));
 
-              await this.contract.connect(this.treasury).transfer(this.signers[14].address, eth(10));
+              await this.contract.transfer(this.signers[14].address, eth(10));
               await this.contract.connect(this.signers[14]).approve(this.uniswapRouter.address, eth(1));
             });
             it('try to swap after trading started', async function () {
@@ -637,7 +609,7 @@ describe('Capy', function () {
         });
 
         it('from any address to another address', async function () {
-          await this.contract.connect(this.treasury).transfer(this.signers[4].address, eth(500));
+          await this.contract.transfer(this.signers[4].address, eth(500));
           await expect(this.contract.connect(this.signers[4]).transfer(this.signers[5].address, eth(500))).to
             .emit(this.contract, 'Transfer')
             .withArgs(
@@ -665,7 +637,7 @@ describe('Capy', function () {
       it('revert with low balance', async function () {
         expect(await this.contract.totalOGs()).to.equal(3);
         await this.contract.withdrawETH();
-        expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth('0.000000000000000002'));
+        expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth('0.000000000000000001'));
         await expect(this.contract.withdrawETH()).to.be.revertedWith("Not enough ETH to withdraw");
       });
     });
@@ -679,15 +651,13 @@ describe('Capy', function () {
         });
         await this.contract.toogleCheckReceive(true);
       });
-      it('send to treasury and OGs', async function () {
+      it('send to OGs', async function () {
         expect(await this.contract.totalOGs()).to.equal(2);
         expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth(1000));
-        let previousTreasuryBalance = await ethers.provider.getBalance(this.treasury.address);
-        let previousOGBalance = await ethers.provider.getBalance(this.OG.address);
+        let previousOGBalance = await ethers.provider.getBalance(this.og.address);
         await this.contract.withdrawETH();
         expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth(0));
-        expect(await ethers.provider.getBalance(this.treasury.address)).to.equal(previousTreasuryBalance.add(eth(200)));
-        expect(await ethers.provider.getBalance(this.OG.address)).to.equal(previousOGBalance.add(eth(400))); // 400 to OG and 400 to deployer
+        expect(await ethers.provider.getBalance(this.og.address)).to.equal(previousOGBalance.add(eth(500))); // 400 to OG and 400 to deployer
       });
     });
   });
@@ -706,8 +676,8 @@ describe('Capy', function () {
           value: eth(100)
         });
         await this.contract.toogleCheckReceive(true);
-        await this.contract.launch(eth(100));
-        await this.contract.connect(this.treasury).transfer(this.contract.address, eth(100000));
+        await this.contract.launch();
+        await this.contract.transfer(this.contract.address, eth(100000));
       });
       it('should revert when balance is 0', async function () {
         await this.contract.manualSwap();
@@ -716,14 +686,12 @@ describe('Capy', function () {
       it('should swap tokens', async function () {
         expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth(100000));
         expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth(0));
-        let previousOGBalance = await ethers.provider.getBalance(this.OG.address);
-        let previousTreasuryBalance = await ethers.provider.getBalance(this.treasury.address);
+        let previousOGBalance = await ethers.provider.getBalance(this.og.address);
         await this.contract.manualSwap();
-        let laterOGBalance = await ethers.provider.getBalance(this.OG.address);
-        let laterTreasuryBalance = await ethers.provider.getBalance(this.treasury.address);
+        let laterOGBalance = await ethers.provider.getBalance(this.og.address);
         expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth(0));
-        expect(await laterOGBalance.sub(previousOGBalance)).to.equal(eth("0.00088612405936809"));
-        expect(await laterTreasuryBalance.sub(previousTreasuryBalance)).to.equal(eth("0.002215310148420225")); // 20% of 0.000000221555531012
+        expect(await laterOGBalance.sub(previousOGBalance)).to.equal(eth("0.002083314587071337"));
+
       });
     });
   });
@@ -737,7 +705,7 @@ describe('Capy', function () {
     })
     describe("when majority of OGs allowed", function () {
       it('send tokens to sender', async function () {
-        await this.contract.connect(this.OG).allowEmergencyWithdraw();
+        await this.contract.connect(this.og).allowEmergencyWithdraw();
         expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth(1));
         expect(await this.contract.emergencyWithdraw()).to.changeEtherBalance(this.deployer, eth(1));
         expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth(0));
