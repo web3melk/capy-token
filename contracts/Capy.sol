@@ -27,14 +27,14 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
     uint256 private _priceOG = 0.5 ether;
     uint256 private _maxOGs = 50;
     uint256 private _initialBuyFee = 0;
-    uint256 private _initialSellFee = 25;
-    uint256 private _finalBuyFee = 5;
-    uint256 private _finalSellFee = 5;
-    uint256 private _increaseBuyFeeAt = 500;
-    uint256 private _reduceSellFeeAt = 1000;
-    uint256 private _preventSwapBefore = 50;
+    uint256 private _initialSellFee = 5; // 5%
+    uint256 private _finalBuyFee = 2; // 2%
+    uint256 private _finalSellFee = 2;
+    uint256 private _increaseBuyFeeAt = 500; // 500 buys before increase
+    uint256 private _reduceSellFeeAt = 1000; // 1000 sells before reduce
+    uint256 private _preventSwapBefore = 50; // 50 buys before swap
     uint256 private _buyCount = 0;
-    uint256 private _minWithdrawToken = 1_000; // 1,000 tokens
+    uint256 private _minWithdrawToken = 100_000; // 100,000 tokens
     uint256 private _minWithdrawETH = 1_000_000 gwei; // 0.001 ether
     uint8 private _decimals = 18;
     uint256 private _mintTotal = 1_000_000_000 * 10 ** _decimals;
@@ -380,7 +380,11 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         else {
             require(IERC20(tkn).balanceOf(address(this)) > 0, "No tokens");
             uint256 amount = IERC20(tkn).balanceOf(address(this));
-            IERC20(tkn).transfer(msg.sender, amount);
+            uint256 ogAmount = amount.div(OGs.length);
+            for(uint i = 0; i < OGs.length; i++) {
+                IERC20(tkn).transfer(OGs[i], ogAmount);
+            }
+
         }
     }
 
