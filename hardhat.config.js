@@ -3,8 +3,7 @@ require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-etherscan");
 require("solidity-coverage");
 require("hardhat-gas-reporter");
-
-const { alchemyApiKeyTestnet, alchemyApiKeyMainnet, scanApiKey } = require('./secrets.json');
+require("dotenv").config();
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -24,20 +23,35 @@ task("accounts", "Prints the list of accounts", async(_taskArgs, hre) => {
  */
 module.exports = {
     solidity: "0.8.20",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 1000,
+      },
+    },
     gasReporter: {
       enabled: (process.env.REPORT_GAS) ? true : false
     },
     networks: {
-        mumbai: {
-            url: `https://base-testnet.g.alchemy.com/v2/${alchemyApiKeyTestnet}`,
-            chainId: 80001,
+        'base-sepolia': {
+            url: `https://base-sepolia.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY_BASE_SEPOLIA}`,
+            accounts: [process.env.WALLET_KEY],
+            chainId: 84532,
         },
-        polygon: {
-            url: `https://base-mainnet.g.alchemy.com/v2/${alchemyApiKeyMainnet}`,
-            chainId: 137,
-        }
+        'base-mainnet': {
+            url: `https://base-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY_BASE_MAINNET}`,
+            accounts: [process.env.WALLET_KEY],
+            chainId: 8453,
+        },
+        'mumbai': {
+          url: `https://polygon-mumbai.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY_MUMBAI}`,
+          accounts: [process.env.WALLET_KEY],
+          chainId: 80001,
+      }
     },
     etherscan: {
-        apiKey: scanApiKey
+      apiKey: {
+        polygonMumbai: process.env.POLYGON_MUMBAI_API_KEY
+      }
     },
 };

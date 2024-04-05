@@ -19,7 +19,7 @@ async function main() {
     const ledger = new LedgerSigner(hre.ethers.provider, ledgerWallet);
 
     // We get the contract to deploy
-    const Capy = await hre.ethers.getContractFactory("Capy");
+    const Capy = await hre.ethers.getContractFactory("CapybaseSocietyToken");
 
     // Connect ledger to the contractFactory
     let contractFactory = await Capy.connect(ledger)

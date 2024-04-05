@@ -83,7 +83,7 @@ In any case the distribution will follow the proportion:
   - 20% to the treasury (defined on contract creation)
   - 80% equaly to all founders (max 50 wallets, so at least 1,6% for each founder)
 
-### Smart Contract
+### Smart Contract Deployments
 
 The smart contract code is open source and can be accessed at:
 https://github.com/web3melk/capy-token/tree/main
@@ -95,8 +95,9 @@ Token Address:
 
 #### Testnet
 
-Contract Creation:
-Token Address:
+Network: Polygon Mumbai
+Token Address: `0xBE596F38e0360488479321bE1E1f4c738d17F61E`
+Scan: https://mumbai.polygonscan.com/address/0xBE596F38e0360488479321bE1E1f4c738d17F61E
 
 ## Development
 
@@ -132,6 +133,22 @@ File        |  % Stmts | % Branch |  % Funcs |  % Lines |Uncovered Lines |
 ------------|----------|----------|----------|----------|----------------|
  All files   |      100 |    76.47 |      100 |      100 |                |
 ------------|----------|----------|----------|----------|----------------|
+
+### Hardhat config
+
+Our hardhat config file implements the `mumbai network` for testing purpposes, but you can add other networks if you want. Sensitive variables are used through .env file.
+
+### Deploy
+
+To deploy on testnet
+
+  $ npx hardhat run scripts/Capy.deploy.testnet.js --network mumbai
+
+### Verify contract on Polygonscan
+
+To verify the contract on Mumbai
+
+  $ npx hardhat verify --network mumbai 0xBE596F38e0360488479321bE1E1f4c738d17F61E
 
 ## License
 

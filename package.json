@@ -3,7 +3,8 @@
     "version": "1.0.0",
     "description": "",
     "scripts": {
-        "test": "mocha --exit --recursive"
+        "deploy": "op run --env-file=\".env\" -- hardhat run scripts/Capy.deploy.testnet.js",
+        "test": "op run --env-file=\".env\" -- npx hardhat test"
     },
     "keywords": [],
     "author": "",
@@ -24,6 +25,7 @@
         "canonical-weth": "^1.4.0",
         "chai": "^4.3.4",
         "chai-bn": "^0.3.0",
+        "dotenv": "^16.4.5",
         "ethereum-waffle": "^3.4.0",
         "ethers": "^5.0.0",
         "hardhat": "^2.22.2",

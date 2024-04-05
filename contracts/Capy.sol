@@ -21,7 +21,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
     address[] public OGs;
     address public uniswapV2Pair;
 
-    // UniswapV2Router02 on BASE
+    // UniswapV2Router02 on BASE from SUSHI
     address public Router = 0x6BDED42c6DA8FBf0d2bA55B2fa120C5e0c8D7891;
 
     mapping(address => bool) private _automatedMarketMakerPairs;
