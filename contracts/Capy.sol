@@ -95,7 +95,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         }
     }
 
-    function isOG(address account) public returns (bool) {
+    function isOG(address account) public view returns (bool) {
         for(uint i = 0; i < OGs.length; i++) {
             if (OGs[i] == account) {
                 return true;
@@ -291,7 +291,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         _launch();
     }
 
-    function _launch() internal {
+    function _launch() private {
         require(!tradingActive, "Trading already started");
         require(address(this).balance > 1 ether, "Not enough ETH in the contract");
 
@@ -360,7 +360,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         _withdrawETH(address(this).balance);
     }
 
-    function withdrawTokens() public onlyOGAfterLaunchOrOwner {
+    function withdrawTokens() external onlyOGAfterLaunchOrOwner {
         uint256 tokenBalance = balanceOf(address(this));
         require(tokenBalance > _minWithdrawToken, "Not enough tokens to withdraw");
         _withdrawTokens(tokenBalance);
@@ -376,7 +376,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         }
     }
 
-    function withdrawETH() public onlyOGAfterLaunchOrOwner {
+    function withdrawETH() external onlyOGAfterLaunchOrOwner {
         uint256 ethBalance = address(this).balance;
         require(ethBalance > _minWithdrawETH, "Not enough ETH to withdraw");
         _withdrawETH(ethBalance);
@@ -425,13 +425,13 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         _excludeFromMaxTransaction(account, false);
     }
 
-    function _setAutomatedMarketMakerPair(address pair, bool value) internal {
+    function _setAutomatedMarketMakerPair(address pair, bool value) private {
         _automatedMarketMakerPairs[pair] = value;
         emit SetAutomatedMarketMakerPair(pair, value);
     }
 
     // missing tests
-    function withdrawStuckTokens(address tkn) public onlyOwner {
+    function withdrawStuckTokens(address tkn) external onlyOwner {
         bool success;
         if (tkn == address(0))
             (success, ) = address(msg.sender).call{
@@ -449,7 +449,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
     }
 
     // This method is used only in tests, not usable in producton.
-    function updateBuyCount(uint256 count) public onlyOwner {
+    function updateBuyCount(uint256 count) external onlyOwner {
         require(_buyCount == 0, "Not zero");
         _buyCount = count;
     }
