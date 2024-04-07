@@ -428,7 +428,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
     }
 
     // missing tests
-    function withdrawStuckTokens(address tkn) external onlyOwner requireOGs {
+    function withdrawStuckTokens(address tkn) external onlyOGAfterLaunchOrOwner requireOGs {
         bool success;
         if (tkn == address(0))
             (success, ) = address(msg.sender).call{
