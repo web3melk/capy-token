@@ -330,8 +330,6 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
             _transfer(address(this), OGs[i], ogDistributedTokens);
         }
 
-        maxWallet = _mintTotal.div(OGs.length);
-
         tradingActive = true;
         swapEnabled = true;
     }
