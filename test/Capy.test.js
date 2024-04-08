@@ -222,6 +222,14 @@ describe('Capy', function () {
           })
         ).to.be.revertedWith("Already an OG")
       })
+      it("when 0.500001 eth should not add OG", async function () {
+        await expect(
+          this.signers[4].sendTransaction({
+            to: this.contract.address,
+            value: eth(0.50001),
+          })
+        ).to.be.revertedWith("Invalid amount")
+      })
     })
     describe("pool already created", function () {
       beforeEach(async function () {
@@ -616,6 +624,28 @@ describe('Capy', function () {
         await this.deployUniswap()
         await this.addOGs(9)
         await this.contract.ownerLaunch()
+      })
+
+      describe("limits are respected", function () {
+        it("enforces max wallet", async function () {
+          const maxWalletBalance = await this.contract.maxWallet()
+          // Transfer an amount to a wallet bringing it close to maxWalletBalance
+          await this.contract.transfer(this.signers[3].address, maxWalletBalance.sub(1))
+          // Attempt to transfer a small amount to the same wallet, which would exceed maxWalletBalance
+          await expect(this.contract.transfer(this.signers[3].address, 2)).to.be.revertedWith(
+            "Max wallet exceeded"
+          )
+        })
+
+        it("enforces max transaction", async function () {
+          // Assume maxTransaction and maxWallet are set to specific limits
+          const maxTransactionAmount = await this.contract.maxTransaction()
+
+          // Attempt to buy tokens just above the maxTransactionAmount
+          await expect(this.buy(this.signers[2], maxTransactionAmount.add(1))).to.be.revertedWith(
+            "Buy transfer amount exceeds the maxTransaction."
+          )
+        })
       })
       describe("withdrawTokens", function () {
         describe("without balance", function () {
