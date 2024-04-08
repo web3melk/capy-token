@@ -311,7 +311,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         _setAutomatedMarketMakerPair(address(uniswapV2Pair), true);
         _excludeFromMaxTransaction(address(uniswapV2Pair), true);
 
-        uint256 amountTokenDesired = balanceOf(address(this)) * 50 / 100;
+        uint256 amountTokenDesired = balanceOf(address(this)) / 2;
         uniswapV2Router.addLiquidityETH {
           value: address(this).balance
         }(

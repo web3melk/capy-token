@@ -28,7 +28,7 @@ $CAPY is a meme coin with no intrinsic value or expectation of financial return.
 The contract creator is the owner of the contract with the ability to execute the following functions:
 - Blacklist an address
 - Remove fee for an address
-- Update the Router to be used to create the poll (default to UniswapV2)
+- Update the Router to be used to create the pool (default to UniswapV2)
 - Update the treasury address (which is a SAFE wallet of developers)
 
 ### For any founder
