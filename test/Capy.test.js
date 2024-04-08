@@ -260,7 +260,7 @@ describe('Capy', function () {
     it('should revert when not enough balance', async function () {
       await expect(this.contract.ownerLaunch()).to.be.revertedWith("Not enough ETH in the contract");
     });
-    it('should create the poll and add liquidity', async function () {
+    it('should create the pool and add liquidity', async function () {
       await this.addOGs(9);
       expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth(1000000000));
       expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth(4.5));
