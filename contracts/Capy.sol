@@ -8,10 +8,9 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol';
 import '@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol';
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
-    using SafeMath for uint256;
     mapping (address => bool) public isExcludedFromFees;
     mapping(address => bool) public isExcludedFromMaxTransaction;
     bool public swapEnabled;
@@ -256,12 +255,12 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
 
             // on buy
             if (_automatedMarketMakerPairs[from] && !_automatedMarketMakerPairs[to] && ! isExcludedFromFees[to] ) {
-                fees = amount.mul((_buyCount>=_increaseBuyFeeAt) ? _finalBuyFee : _initialBuyFee).div(100);
+                fees = amount * ((_buyCount>=_increaseBuyFeeAt) ? _finalBuyFee : _initialBuyFee) / 100;
                 _buyCount++; // only ocunts buys made by addresses not whitelabeled
             }
             // on sell
             else if (_automatedMarketMakerPairs[to] && ! isExcludedFromFees[from]) {
-                fees = amount.mul((_buyCount>=_reduceSellFeeAt) ? _finalSellFee : _initialSellFee).div(100);
+                fees = amount * ((_buyCount>=_reduceSellFeeAt) ? _finalSellFee : _initialSellFee) / 100;
             }
 
             if (fees > 0) {
@@ -274,7 +273,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         // updates OG when moving tokens to another wallet
         if(isOG(from)) {
             // removes if remaining is less than distributed
-            if(balanceOf(from).sub(amount) < ogDistributedTokens) {
+            if((balanceOf(from) - amount) < ogDistributedTokens) {
                 _removeOG(from);
             }
             // adds the new wallet if not the pool (selling)
@@ -311,7 +310,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         _setAutomatedMarketMakerPair(address(uniswapV2Pair), true);
         _excludeFromMaxTransaction(address(uniswapV2Pair), true);
 
-        uint256 amountTokenDesired = balanceOf(address(this)) * 50 / 100;
+        uint256 amountTokenDesired = balanceOf(address(this)) / 2; // 50%
         uniswapV2Router.addLiquidityETH {
           value: address(this).balance
         }(
@@ -325,7 +324,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
 
         // Withdraw to OGs the initial distribution
         // Do not use _withdrawTokens because it will remove OGs without balance
-        ogDistributedTokens = balanceOf(address(this)).div(OGs.length);
+        ogDistributedTokens = balanceOf(address(this)) / OGs.length;
         for(uint i = 0; i < OGs.length; i++) {
             _transfer(address(this), OGs[i], ogDistributedTokens);
         }
@@ -375,7 +374,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
     function _withdrawTokens(uint256 amount) private {
         if (amount < _minWithdrawToken) return;
 
-        uint256 ogAmount = amount.div(OGs.length);
+        uint256 ogAmount = amount / OGs.length;
         for(uint i = 0; i < OGs.length; i++) {
             _transfer(address(this), OGs[i], ogAmount);
         }
@@ -390,7 +389,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
     function _withdrawETH(uint256 amount) private {
         if(amount < _minWithdrawETH) return;
 
-        uint256 ogAmount = amount.div(OGs.length);
+        uint256 ogAmount = amount / OGs.length;
         for(uint i = 0; i < OGs.length; i++) {
             payable(OGs[i]).transfer(ogAmount);
         }
@@ -435,7 +434,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         else {
             require(IERC20(tkn).balanceOf(address(this)) > 0, "No tokens");
             uint256 amount = IERC20(tkn).balanceOf(address(this));
-            uint256 ogAmount = amount.div(OGs.length);
+            uint256 ogAmount = amount / OGs.length;
             for(uint i = 0; i < OGs.length; i++) {
                 IERC20(tkn).transfer(OGs[i], ogAmount);
             }
