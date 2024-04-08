@@ -108,12 +108,12 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         return false;
     }
 
-    function totalOGs() public view returns (uint256) {
+    function totalOGs() external view returns (uint256) {
         return OGs.length;
     }
 
     function excludeFromMaxTransaction(address account, bool value)
-        public
+        external
         onlyOwner
     {
         _excludeFromMaxTransaction(account, value);
@@ -126,7 +126,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         emit ExcludeFromLimits(account, value);
     }
 
-    function excludeFromFees(address account, bool value) public onlyOwner {
+    function excludeFromFees(address account, bool value) external onlyOwner {
         _excludeFromFees(account, value);
     }
 
@@ -135,12 +135,12 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         emit ExcludeFromFees(account, value);
     }
 
-    function setSwapEnabled(bool value) public onlyOwner {
+    function setSwapEnabled(bool value) external onlyOwner {
         swapEnabled = value;
     }
 
     // missing tests
-    function setSwapTokensAtAmount(uint256 amount) public onlyOwner {
+    function setSwapTokensAtAmount(uint256 amount) external onlyOwner {
         require(
             amount >= (totalSupply() * 1) / 100000,
             "ERC20: Swap amount cannot be lower than 0.001% total supply."
@@ -156,7 +156,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
     function setMaxWalletAndMaxTransaction(
         uint256 _maxTransaction,
         uint256 _maxWallet
-    ) public onlyOwner {
+    ) external onlyOwner {
         require(
             _maxTransaction >= ((totalSupply() * 5) / 1000),
             "ERC20: Cannot set maxTxn lower than 0.5%"
@@ -169,7 +169,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         maxWallet = _maxWallet;
     }
 
-    function toogleCheckReceive(bool value) public onlyOwner {
+    function toogleCheckReceive(bool value) external onlyOwner {
         checkReceive = value;
     }
 
