@@ -160,7 +160,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         maxWallet = _maxWallet;
     }
 
-    function toogleCheckReceive(bool value) external onlyOwner {
+    function setCheckReceive(bool value) external onlyOwner {
         checkReceive = value;
     }
 

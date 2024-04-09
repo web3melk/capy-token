@@ -210,14 +210,14 @@ describe('Capy', function () {
     });
   });
 
-  describe("toogleCheckReceive", function () {
+  describe("setCheckReceive", function () {
     it('should block not owner', async function () {
-      await expect(this.contract.connect(this.notAdmin).toogleCheckReceive(false)).to.be.revertedWith("Ownable: caller is not the owner");
+      await expect(this.contract.connect(this.notAdmin).setCheckReceive(false)).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
     it('should change checkReceive', async function () {
       expect(await this.contract.checkReceive()).to.equal(true);
-      await this.contract.toogleCheckReceive(false);
+      await this.contract.setCheckReceive(false);
       expect(await this.contract.checkReceive()).to.equal(false);
     });
   });
@@ -813,12 +813,12 @@ describe('Capy', function () {
     describe("with enough balance", function () {
       beforeEach(async function () {
         await this.addOGs(1); // OGs ill send 0.5
-        await this.contract.toogleCheckReceive(false);
+        await this.contract.setCheckReceive(false);
         await this.signers[4].sendTransaction({
           to: this.contract.address,
           value: eth(999.5) // OG will send 0.5 each, that's why 999.5 here
         });
-        await this.contract.toogleCheckReceive(true);
+        await this.contract.setCheckReceive(true);
       });
       it('send to OGs', async function () {
         expect(await this.contract.totalOGs()).to.equal(2);
@@ -839,12 +839,12 @@ describe('Capy', function () {
       beforeEach(async function () {
         await this.deployUniswap();
         await this.addOGs(9);
-        await this.contract.toogleCheckReceive(false);
+        await this.contract.setCheckReceive(false);
         await this.deployer.sendTransaction({
           to: this.contract.address,
           value: eth(100)
         });
-        await this.contract.toogleCheckReceive(true);
+        await this.contract.setCheckReceive(true);
         await this.contract.ownerLaunch();
         // deployer is loosing status of OG
         await this.contract.transfer(this.contract.address, eth(100000));
