@@ -245,12 +245,12 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
             uint256 fees = 0;
 
             // on buy
-            if (_automatedMarketMakerPairs[from] && !_automatedMarketMakerPairs[to] && ! isExcludedFromFees[to] ) {
+            if (_automatedMarketMakerPairs[from] && to != address(uniswapV2Router)) {
                 fees = amount * ((_buyCount>=_increaseBuyFeeAt) ? _finalBuyFee : _initialBuyFee) / 100;
                 _buyCount++; // only ocunts buys made by addresses not whitelabeled
             }
             // on sell
-            else if (_automatedMarketMakerPairs[to] && ! isExcludedFromFees[from]) {
+            else if (_automatedMarketMakerPairs[to]) {
                 fees = amount * ((_buyCount>=_reduceSellFeeAt) ? _finalSellFee : _initialSellFee) / 100;
             }
 

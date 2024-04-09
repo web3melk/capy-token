@@ -513,6 +513,16 @@ describe('Capy', function () {
       });
     });
 
+    xit("regression: sell as new wallet", async function () {
+      await this.deployUniswap();
+      await this.addOGs(5);
+      await this.contract.ownerLaunch();
+      await this.contract.transfer(this.signers[3].address, eth(20_000));
+      await this.sell(this.signers[3], eth(20_000));
+      await this.buy(this.signers[3], eth(5));
+      await this.sell(this.signers[3], eth(10_000));
+      await this.buy(this.signers[3], eth(1));
+    })
 
     describe("trading started", function () {
       beforeEach(async function () {
