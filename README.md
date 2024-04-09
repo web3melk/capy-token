@@ -6,8 +6,8 @@
 * Contract Address: `(TBD)`
 * Total Fixed Supply: `1,000,000,000` (1 Billion)
 * Supply:
-  * Liquidity Pool: `90%`
-  * Treasury: `10%`
+  * Liquidity Pool: `50%`
+  * Presale: `50%`
 * Ticker: `$CAPY`
 * Decimals: `18`
 
@@ -15,29 +15,42 @@
 
 $CAPY is a meme coin with no intrinsic value or expectation of financial return. There is no formal team or roadmap. The coin is completely useless and for entertainment purposes only.
 
-- The first 500 buys will have no fee.
+- An OG is the wallet that bought the token on the presale before the pool is created and the trading is started;
+- To become an OG a wallet should send 0.5 ETH to contract address *before the trade is opened*;
+- The contract creator becomes a OG without paying 0.5 ETH;
+- There is a maximum of 50 OGs;
+- The OGs will receive 50% of tokens at the moment that pool is created;
+- There is a fee applied on every buy and sell
+- 100% of all fees collected by the contract can be withdrawn to OGs;
+- The first 500 buys will have no fee;
 - The first 1,000 sells will have a increased fee.
-- The first 50 wallets that send 0.5 ETH to contract address *before the trade is opened* will be the founders and will receive 80% of all fees forever.
-- The initial LP tokens are automatically burned (no chance to rug)
-- After some time the contract creator will renounce ownership.
+- The initial LP tokens are automatically burned by the contract on pool creation (no chance to rug)
 
 ## Privileges
 
 ### For contract creator
 
-The contract creator is the owner of the contract with the ability to execute the following functions:
-- Blacklist an address
-- Remove fee for an address
-- Update the Router to be used to create the poll (default to UniswapV2)
-- Update the treasury address (which is a SAFE wallet of developers)
+The contract creator is the owner of the contract only before pool launch and have the ability to execute the following functions:
+- Update the router to be used to create liquidity (used in testnets only)
+- Exclude a wallet from the limit of maximum tokens per transaction
+- Exclude a wallet from paying fees
+- Enable/Disable the automatic swap of fees on sells
+- Set the threshold of tokens in the contract to swap automatically
+- Set the max transaction amount and max wallet amount (this is to avoid bots)
+- Enables and disables checks on the receipt of eth by the contract (this is for safety in case there is any problem in swaps)
+- Launch the pool and start trading even when maximum of OGs is not reached.
 
-### For any founder
+### For any OG
 
-The following actions can be done by any founder *after the pool launch*:
+The following actions can be done by any OG *after the pool launch*:
 
-- Withdraw ETH from contract to treasury and founders after (always in a proportion of 20%/80% respectively)
-- Withdraw tokens from contract to treasury and founders (always in a proportion of 20%/80% respectively)
-- Manual swap CAPY tokens to ETH and distribute
+- Launch the pool and start trading if the maximum of OGs is reached.
+- Withdraw ETH from contract
+- Withdraw tokens from contract
+- Withdraw any ERC token that were transferred to the contract
+- Manually swap CAPY tokens to ETH and withdraw
+
+All withdrawals are made to all OGs proportionally.
 
 ### Trade
 
@@ -53,35 +66,37 @@ There are no fees for transfers between wallets.
 #### Buy
 
 * Before the first `500` purchases: `0%`
-* After the first `500` purchases: `5%`
+* After the first `500` purchases: `2%`
 
 #### Sell
 
-* Before the first `1,000` purchases: `25%`
-* After the first `1,000` purchases: `5%`
+* Before the first `1,000` purchases: `5%`
+* After the first `1,000` purchases: `2%`
 
-## Founders
+## OGs
 
-On contract deployment, all tokens are minted to the contract address and a treasury wallet is defined. The contract creator becomes the owner of contract.
+On contract deployment, all tokens are minted to the contract address. The contract creator becomes the owner of contract and the first OG.
 
-Anyone will be able to transfer 0.5 ETH to the contract address to be a founder. There is a maximum of 50 founders.
-At any time, the owner will be able to create the liquidity pool with an arbitrary amount of ETH in the contract and trading will be open. At this moment the remaining ETH in the contract will go to the treasury and 10% of tokens will be distributed to the treasury and to all founders in a proportion of 20%/80% respectively.
+Anyone will be able to transfer 0.5 ETH to the contract address to be a OG. There is a maximum of 50 OGs. All OGs are whitelisted and does not have the limit of transactions nor pay the fees.
 
-Rules:
-- If you try to transfer 0.5 ETH after the pool creation, or the maximum founders reached, the transaction will be reverted.
-- Each wallet will have only one spot as founder.
-- In case of two transactions from the same wallet, the second transaction will be reverted, and the wallet will still be a founder in the list.
+At any time, the owner will be able to launch the token with just one transaction that:
+1. Creates the liquidity pool with 50% of tokens and the total ETH amount locked on the contract.
+2. Distribute the other 50% of tokens to all OGs.
+3. Sets the maximum tokens per wallet to the distributed amount per OG.
 
 On every buy and sell a fee will be aplied.
 The fees are collected in CAPY tokens.
-At any time, any founder can:
+At any time, any OG can:
 1) Swap CAPY token to ETH and distribute
 2) Distribute CAPY tokens in the contract
 3) Distribute ETH in the contract
 
-In any case the distribution will follow the proportion:
-  - 20% to the treasury (defined on contract creation)
-  - 80% equaly to all founders (max 50 wallets, so at least 1,6% for each founder)
+Rules:
+- If a wallet try to transfer 0.5 ETH after the pool creation, or the maximum OGs reached, the transaction will be reverted.
+- Each wallet will have only one spot as OG.
+- In case of two transactions from the same wallet, the second transaction will be reverted, and the wallet will still be an OG.
+- If an OG transfer part of the tokens received, the wallet lose the OG status and becomes a normal wallet that pays fees, has limits and do not receive fees.
+- If an OG transfer ALL tokens from the whitelisted wallet to a new wallet, the status of OG is removed from the first one and added to the new one, so the fees will be collected by the new wallet. It happens only if the transfer amount is exactly the total amount of the OG wallet.
 
 ### Smart Contract Deployments
 
