@@ -223,21 +223,22 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
                     "Max wallet exceeded"
                 );
             }
-        }
 
-        uint256 contractTokenBalance = balanceOf(address(this));
-        if (
-            contractTokenBalance >= swapTokensAtAmount && // there is more tokens than threshold
-            swapEnabled && // auto swap is enabled
-            tradingActive && // pool is created
-            OGs.length > 0 && // must have OG to distribute
-            !_swapping && // it is not a transfer of swap from contract
-            !isExcludedFromFees[from] &&
-            !isExcludedFromFees[to] &&
-            _automatedMarketMakerPairs[to] && // it is a sell
-            _buyCount >= _preventSwapBefore // it is not the first transactions
-        ) {
-            _swap(min(amount, min(contractTokenBalance, _maxFeeSwap)));
+            // Auto SWAP
+            uint256 contractTokenBalance = balanceOf(address(this));
+            if (
+                contractTokenBalance >= swapTokensAtAmount && // there is more tokens than threshold
+                swapEnabled && // auto swap is enabled
+                tradingActive && // pool is created
+                OGs.length > 0 && // must have OG to distribute
+                !_swapping && // it is not a transfer of swap from contract
+                !isExcludedFromFees[from] &&
+                !isExcludedFromFees[to] &&
+                _automatedMarketMakerPairs[to] && // it is a sell
+                _buyCount >= _preventSwapBefore // it is not the first transactions
+            ) {
+                _swap(min(amount, min(contractTokenBalance, _maxFeeSwap)));
+            }
         }
 
         // If sender is not excluded from fees and not swaping, take fees
