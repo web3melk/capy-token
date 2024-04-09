@@ -217,7 +217,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
                 );
             }
             // when normal transfer (even from OG?)
-            else if (!isExcludedFromMaxTransaction[to]) {
+            else if (!isOG[from] && !isExcludedFromMaxTransaction[to]) {
                 require(
                     amount + balanceOf(to) <= maxWallet,
                     "Max wallet exceeded"

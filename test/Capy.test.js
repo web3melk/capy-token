@@ -786,6 +786,16 @@ describe('Capy', function () {
           expect(await this.contract.isOG('0x2546BcD3c84621e976D8185a91A922aE77ECEc30')).to.be.true
           expect(await this.contract.totalOGs()).to.be.equal(10);
         });
+
+        it("updates when transfering all tokens after buy", async function () {
+          await this.buy(this.og, eth(5));
+          let balance = await this.contract.balanceOf(this.og.address);
+          await expect(this.contract.connect(this.og).transfer('0x2546BcD3c84621e976D8185a91A922aE77ECEc30', balance)).not.to.be.reverted
+          expect(await this.contract.balanceOf(this.og.address)).to.equal(eth(0));
+          expect(await this.contract.isOG(this.og.address)).to.be.false
+          expect(await this.contract.isOG('0x2546BcD3c84621e976D8185a91A922aE77ECEc30')).to.be.true
+          expect(await this.contract.totalOGs()).to.be.equal(10);
+        })
       });
 
       it('from any address to another address', async function () {
