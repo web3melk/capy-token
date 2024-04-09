@@ -11,6 +11,7 @@ import '@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol';
 // import "hardhat/console.sol";
 
 contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
+    mapping (address => bool) public isOG;
     mapping (address => bool) public isExcludedFromFees;
     mapping(address => bool) public isExcludedFromMaxTransaction;
     bool public swapEnabled;
@@ -40,8 +41,8 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
     uint256 private _mintTotal = 1_000_000_000 * 10 ** _decimals;
     uint256 private _maxFeeSwap= 10_000_000 * 10 ** _decimals;
     bool private _swapping = false;
-    uint256 public maxTransaction = _mintTotal;
-    uint256 public maxWallet = _mintTotal;
+    uint256 public maxTransaction = _mintTotal / 50;
+    uint256 public maxWallet = _mintTotal / 50; // 2% of supply
     uint256 public swapTokensAtAmount = (_mintTotal * 1) / 1000;
 
     IUniswapV2Router02 private uniswapV2Router;
@@ -75,12 +76,12 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
     }
 
     modifier onlyOGAfterLaunchOrOwner() {
-        require(owner() == msg.sender || (isOG(msg.sender) && tradingActive), "caller is not the owner or OG after launch");
+        require(owner() == msg.sender || (isOG[msg.sender] && tradingActive), "caller is not the owner or OG after launch");
         _;
     }
 
     modifier onlyOG() {
-        require(isOG(msg.sender), "caller is not a OG");
+        require(isOG[msg.sender], "caller is not a OG");
         _;
     }
 
@@ -93,19 +94,10 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         if (!_automatedMarketMakerPairs[msg.sender] && msg.sender != address(uniswapV2Router) && checkReceive) {
             require(!tradingActive, "Trading already started");
             require(OGs.length < _maxOGs, "Max OGs reached");
-            require(!isOG(msg.sender), "Already an OG");
+            require(!isOG[msg.sender], "Already an OG");
             require(msg.value == _priceOG, "Invalid amount");
             _addOG(msg.sender);
         }
-    }
-
-    function isOG(address account) public view returns (bool) {
-        for(uint i = 0; i < OGs.length; i++) {
-            if (OGs[i] == account) {
-                return true;
-            }
-        }
-        return false;
     }
 
     function totalOGs() external view returns (uint256) {
@@ -152,7 +144,6 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         swapTokensAtAmount = amount;
     }
 
-    // missing tests
     function setMaxWalletAndMaxTransaction(
         uint256 _maxTransaction,
         uint256 _maxWallet
@@ -208,7 +199,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
             ) {
                 require(
                     amount <= maxTransaction,
-                    "Buy transfer amount exceeds the maxTransaction."
+                    "Buy transfer amount exceeds the maxTransaction"
                 );
                 require(
                     amount + balanceOf(to) <= maxWallet,
@@ -225,7 +216,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
                     "Sell transfer amount exceeds the maxTransaction."
                 );
             }
-            // when normal transfer
+            // when normal transfer (even from OG?)
             else if (!isExcludedFromMaxTransaction[to]) {
                 require(
                     amount + balanceOf(to) <= maxWallet,
@@ -271,9 +262,9 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         }
 
         // updates OG when moving tokens to another wallet
-        if(isOG(from)) {
+        if(isOG[from]) {
             // removes if remaining is less than distributed
-            if((balanceOf(from) - amount) < ogDistributedTokens) {
+            if(balanceOf(from) >= amount && (balanceOf(from) - amount) < ogDistributedTokens) {
                 _removeOG(from);
             }
             // adds the new wallet if not the pool (selling)
@@ -328,7 +319,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         for(uint i = 0; i < OGs.length; i++) {
             _transfer(address(this), OGs[i], ogDistributedTokens);
         }
-
+        maxWallet = ogDistributedTokens;
         tradingActive = true;
         swapEnabled = true;
     }
@@ -398,6 +389,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
     function _addOG(address account) private {
         _excludeFromFees(account, true);
         _excludeFromMaxTransaction(account, true);
+        isOG[account] = true;
         OGs.push(account);
     }
 
@@ -414,6 +406,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
             OGs[i] = OGs[i+1];
         }
         OGs.pop();
+        isOG[account] = false;
         _excludeFromFees(account, false);
         _excludeFromMaxTransaction(account, false);
         if(OGs.length == 0) swapEnabled = false;

@@ -185,6 +185,14 @@ describe('Capy', function () {
           value: eth(0.5)
         })).to.be.revertedWith("Already an OG");
       });
+      it("when 0.500001 eth should not add OG", async function () {
+        await expect(
+          this.signers[4].sendTransaction({
+            to: this.contract.address,
+            value: eth(0.50001),
+          })
+        ).to.be.revertedWith("Invalid amount")
+      });
     });
     describe("pool already created", function () {
       beforeEach(async function () {
@@ -512,6 +520,54 @@ describe('Capy', function () {
         await this.addOGs(9);
         await this.contract.ownerLaunch();
       });
+
+      it("revert when amount exceed balance", async function () {
+        // Attempt to transfer more than available
+        await expect(this.contract.transfer(this.signers[3].address, await this.contract.totalSupply())).to.be.revertedWith(
+          "ERC20: transfer amount exceeds balance"
+        )
+      })
+
+      describe("limits are respected", function () {
+        beforeEach(async function () {
+          await this.contract.setMaxWalletAndMaxTransaction(eth(5_000_000), eth(7_000_000))
+        });
+        it("shoud set limits", async function () {
+          expect(await this.contract.maxTransaction()).to.be.equal(eth(5_000_000))
+          expect(await this.contract.maxWallet()).to.be.equal(eth(7_000_000))
+        });
+        describe("when transfering tokens", function () {
+          it("do not enforces max wallet", async function () {
+            await this.contract.excludeFromMaxTransaction(this.signers[3].address, false);
+            await this.contract.transfer(this.signers[3].address, eth(6_000_000));
+            await expect(this.contract.transfer(this.signers[3].address, eth(2_000_000))).not.to.be.reverted;
+          });
+
+          it("do not enforces max transaction", async function () {
+            await this.contract.excludeFromMaxTransaction(this.signers[3].address, false);
+            await expect(this.contract.transfer(this.signers[3].address, eth(6_000_000))).not.to.be.reverted;
+          });
+        });
+        describe("when buying tokens", function () {
+          it("should enforces max wallet", async function () {
+            await this.contract.excludeFromMaxTransaction(this.signers[3].address, false);
+            await this.buy(this.signers[2], eth(5_000_000 * this.tokenPrice / 3_600));
+            let balance = await this.contract.balanceOf(this.signers[2].address)
+            expect(parseFloat(ethers.utils.formatEther(balance))).to.be.closeTo(5_000_000, 100_000);
+            await expect(this.buy(this.signers[2], eth(3_000_000 * this.tokenPrice / 3_600))).to.be.revertedWith(
+              "UniswapV2: TRANSFER_FAILED"
+            )
+          });
+
+          it("should enforces max transaction", async function () {
+            await this.contract.excludeFromMaxTransaction(this.signers[3].address, false);
+            await expect(this.buy(this.signers[2], eth(6_000_000 * this.tokenPrice / 3_600))).to.be.revertedWith(
+              "UniswapV2: TRANSFER_FAILED"
+            )
+          });
+        });
+      });
+
       describe("withdrawTokens", function () {
         describe("without balance", function () {
           it('revert', async function () {
@@ -647,7 +703,7 @@ describe('Capy', function () {
             let received = newBalance.sub(previousBalance);
             let wouldReceivedWithoutFeeETH = ethFromDollar(1000_000 * this.tokenPrice);
             expect(parseFloat(ethers.utils.formatEther(received))).to.be.closeTo(parseFloat(ethers.utils.formatEther(wouldReceivedWithoutFeeETH)), 1000);
-            expect(parseFloat(ethers.utils.formatEther(received))).to.be.closeTo(0.00858, 0.00001);
+            expect(parseFloat(ethers.utils.formatEther(received))).to.be.closeTo(0.00862, 0.00001);
           });
         });
         describe("auto swap", function () {
