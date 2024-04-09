@@ -91,13 +91,13 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
     }
 
     receive() external payable  {
-        if (!_automatedMarketMakerPairs[msg.sender] && msg.sender != address(uniswapV2Router) && checkReceive) {
-            require(!tradingActive, "Trading already started");
-            require(OGs.length < _maxOGs, "Max OGs reached");
-            require(!isOG[msg.sender], "Already an OG");
-            require(msg.value == _priceOG, "Invalid amount");
-            _addOG(msg.sender);
-        }
+        if (_automatedMarketMakerPairs[msg.sender] || msg.sender == address(uniswapV2Router) || !checkReceive) return;
+
+        require(!tradingActive, "Trading already started");
+        require(OGs.length < _maxOGs, "Max OGs reached");
+        require(!isOG[msg.sender], "Already an OG");
+        require(msg.value == _priceOG, "Invalid amount");
+        _addOG(msg.sender);
     }
 
     function totalOGs() external view returns (uint256) {
