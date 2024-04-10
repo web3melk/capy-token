@@ -8,7 +8,37 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol';
 import '@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol';
-// import "hardhat/console.sol";
+
+// TOKEN
+// * Total Fixed Supply: `1,000,000,000` (1 Billion)
+// * Supply:
+//   * Liquidity Pool: `50%`
+//   * Presale: `50%`
+// * Ticker: `$CAPY`
+// * Decimals: `18`
+
+// TL;DR
+// $CAPY is a meme coin with no intrinsic value or expectation of financial return. There is no formal team or roadmap. The coin is completely useless and for entertainment purposes only.
+// - An OG is the wallet that bought the token on the presale before the pool is created and the trading is started;
+// - To become an OG a wallet should send 0.5 ETH to contract address *before the trade is opened*;
+// - The contract creator becomes a OG without paying 0.5 ETH;
+// - There is a maximum of 50 OGs;
+// - The OGs will receive 50% of tokens at the moment that pool is created;
+// - There is a fee applied on every buy and sell
+// - 100% of all fees collected by the contract can be withdrawn to OGs;
+// - The first 500 buys will have no fee;
+// - The first 1,000 sells will have a increased fee.
+// - The initial LP tokens are automatically burned by the contract on pool creation (no chance to rug)
+
+// FEES
+// Fees are collected on purchases and sales from the liquidity pool.
+// There are no fees for transfers between wallets.
+// === Buy
+// * Before the first `500` purchases: `0%`
+// * After the first `500` purchases: `2%`
+// === Sell
+// * Before the first `1,000` purchases: `5%`
+// * After the first `1,000` purchases: `2%`
 
 contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
     mapping (address => bool) public isOG;
@@ -450,3 +480,5 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         return (a>b)?b:a;
     }
 }
+
+// import "hardhat/console.sol";
