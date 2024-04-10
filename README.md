@@ -86,10 +86,12 @@ At any time, the owner will be able to launch the token with just one transactio
 
 On every buy and sell a fee will be aplied.
 The fees are collected in CAPY tokens.
-At any time, any OG can:
-1) Swap CAPY token to ETH and distribute
-2) Distribute CAPY tokens in the contract
-3) Distribute ETH in the contract
+After the token launch, any OG can:
+1) Swap CAPY token (received as fee) to ETH and withdraw
+2) Withdraw CAPY tokens in the contract
+3) Withdraw ETH in the contract (after a manual swap of CAPY tokens to ETH)
+
+All withdrawals are made to all OGs proportionally.
 
 Rules:
 - If a wallet try to transfer 0.5 ETH after the pool creation, or the maximum OGs reached, the transaction will be reverted.
