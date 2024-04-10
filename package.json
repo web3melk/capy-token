@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "description": "",
     "scripts": {
-        "deploy": "op run --env-file=\".env\" -- hardhat run scripts/Capy.deploy.testnet.js",
+        "deploy": "op run --env-file=\".env\" -- hardhat run scripts/Capy.deploy.testnet.js --network mumbai",
         "test": "op run --env-file=\".env\" -- npx hardhat test"
     },
     "keywords": [],
