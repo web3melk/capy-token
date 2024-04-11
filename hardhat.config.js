@@ -44,9 +44,9 @@ module.exports = {
             chainId: 8453,
         },
         'mumbai': {
-          url: `https://polygon-mumbai.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY_MUMBAI}`,
-          accounts: [process.env.WALLET_KEY],
-          chainId: 80001,
+            url: `https://polygon-mumbai.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY_MUMBAI}`,
+            accounts: [process.env.WALLET_KEY],
+            chainId: 80001,
       }
     },
     etherscan: {
