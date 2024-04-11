@@ -20,8 +20,8 @@ import '@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol';
 // TL;DR
 // $CAPY is a meme coin with no intrinsic value or expectation of financial return. There is no formal team or roadmap. The coin is completely useless and for entertainment purposes only.
 // - An OG is the wallet that bought the token on the presale before the pool is created and the trading is started;
-// - To become an OG a wallet should send 0.5 ETH to contract address *before the trade is opened*;
-// - The contract creator becomes a OG without paying 0.5 ETH;
+// - To become an OG a wallet should send 0.2 ETH to contract address *before the trade is opened*;
+// - The contract creator becomes a OG without paying 0.2 ETH;
 // - There is a maximum of 50 OGs;
 // - The OGs will receive 50% of tokens at the moment that pool is created;
 // - There is a fee applied on every buy and sell
@@ -35,10 +35,10 @@ import '@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol';
 // There are no fees for transfers between wallets.
 // === Buy
 // * Before the first `500` purchases: `0%`
-// * After the first `500` purchases: `2%`
+// * After the first `500` purchases: `0.2%`
 // === Sell
-// * Before the first `1,000` purchases: `5%`
-// * After the first `1,000` purchases: `2%`
+// * Before the first `1,000` purchases: `0.4%`
+// * After the first `1,000` purchases: `0.2%`
 
 contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
     mapping (address => bool) public isOG;
@@ -55,12 +55,12 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
     address public Router = 0x6BDED42c6DA8FBf0d2bA55B2fa120C5e0c8D7891;
 
     mapping(address => bool) private _automatedMarketMakerPairs;
-    uint256 private _priceOG = 0.5 ether;
+    uint256 private _priceOG = 0.2 ether;
     uint256 private _maxOGs = 50;
     uint256 private _initialBuyFee = 0;
-    uint256 private _initialSellFee = 5; // 5%
-    uint256 private _finalBuyFee = 2; // 2%
-    uint256 private _finalSellFee = 2;
+    uint256 private _initialSellFee = 4; // 0.4%
+    uint256 private _finalBuyFee = 2; // 0.2%
+    uint256 private _finalSellFee = 2; // 0.2%
     uint256 private _increaseBuyFeeAt = 500; // 500 buys before increase
     uint256 private _reduceSellFeeAt = 1000; // 1000 sells before reduce
     uint256 private _preventSwapBefore = 50; // 50 buys before swap
@@ -277,12 +277,12 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
 
             // on buy
             if (_automatedMarketMakerPairs[from] && to != address(uniswapV2Router)) {
-                fees = amount * ((_buyCount>=_increaseBuyFeeAt) ? _finalBuyFee : _initialBuyFee) / 100;
+                fees = amount * ((_buyCount>=_increaseBuyFeeAt) ? _finalBuyFee : _initialBuyFee) / 1000;
                 _buyCount++; // only ocunts buys made by addresses not whitelabeled
             }
             // on sell
             else if (_automatedMarketMakerPairs[to]) {
-                fees = amount * ((_buyCount>=_reduceSellFeeAt) ? _finalSellFee : _initialSellFee) / 100;
+                fees = amount * ((_buyCount>=_reduceSellFeeAt) ? _finalSellFee : _initialSellFee) / 1000;
             }
 
             if (fees > 0) {
@@ -359,7 +359,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         Router = router;
     }
 
-    function manualSwap() external onlyOGAfterLaunchOrOwner requireOGs {
+    function manualSwap() external onlyOGAfterLaunchOrOwner requireOGs nonReentrant {
         uint256 tokenBalance = balanceOf(address(this));
         require(tokenBalance > _minWithdrawToken, "Not enough tokens to swap");
         _swap(tokenBalance);
@@ -387,7 +387,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         _withdrawETH(address(this).balance);
     }
 
-    function withdrawTokens() external onlyOGAfterLaunchOrOwner requireOGs {
+    function withdrawTokens() external onlyOGAfterLaunchOrOwner requireOGs nonReentrant {
         uint256 tokenBalance = balanceOf(address(this));
         require(tokenBalance >= _minWithdrawToken, "Not enough tokens to withdraw");
         _withdrawTokens(tokenBalance);
@@ -402,7 +402,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
         }
     }
 
-    function withdrawETH() external onlyOGAfterLaunchOrOwner requireOGs {
+    function withdrawETH() external onlyOGAfterLaunchOrOwner requireOGs nonReentrant {
         uint256 ethBalance = address(this).balance;
         require(ethBalance >= _minWithdrawETH, "Not enough ETH to withdraw");
         _withdrawETH(ethBalance);
@@ -449,7 +449,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
     }
 
     // missing tests
-    function withdrawStuckTokens(address tkn) external onlyOGAfterLaunchOrOwner requireOGs {
+    function withdrawStuckTokens(address tkn) external onlyOGAfterLaunchOrOwner requireOGs nonReentrant {
         bool success;
         if (tkn == address(0))
             (success, ) = address(msg.sender).call{

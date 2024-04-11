@@ -16,8 +16,8 @@
 $CAPY is a meme coin with no intrinsic value or expectation of financial return. There is no formal team or roadmap. The coin is completely useless and for entertainment purposes only.
 
 - An OG is the wallet that bought the token on the presale before the pool is created and the trading is started;
-- To become an OG a wallet should send 0.5 ETH to contract address *before the trade is opened*;
-- The contract creator becomes a OG without paying 0.5 ETH;
+- To become an OG a wallet should send 0.2 ETH to contract address *before the trade is opened*;
+- The contract creator becomes a OG without paying 0.2 ETH;
 - There is a maximum of 50 OGs;
 - The OGs will receive 50% of tokens at the moment that pool is created;
 - There is a fee applied on every buy and sell
@@ -66,18 +66,18 @@ There are no fees for transfers between wallets.
 #### Buy
 
 * Before the first `500` purchases: `0%`
-* After the first `500` purchases: `2%`
+* After the first `500` purchases: `0.2%`
 
 #### Sell
 
-* Before the first `1,000` purchases: `5%`
-* After the first `1,000` purchases: `2%`
+* Before the first `1,000` purchases: `0.4%`
+* After the first `1,000` purchases: `0.2%`
 
 ## OGs
 
 On contract deployment, all tokens are minted to the contract address. The contract creator becomes the owner of contract and the first OG.
 
-Anyone will be able to transfer 0.5 ETH to the contract address to be a OG. There is a maximum of 50 OGs. All OGs are whitelisted and does not have the limit of transactions nor pay the fees.
+Any wallet will be able to transfer 0.2 ETH to the contract address to be a OG. There is a maximum of 50 OGs. All OGs are whitelisted and does not have the limit of transactions nor pay the fees.
 
 At any time, the owner will be able to launch the token with just one transaction that:
 1. Creates the liquidity pool with 50% of tokens and the total ETH amount locked on the contract.
@@ -94,7 +94,8 @@ After the token launch, any OG can:
 All withdrawals are made to all OGs proportionally.
 
 Rules:
-- If a wallet try to transfer 0.5 ETH after the pool creation, or the maximum OGs reached, the transaction will be reverted.
+- If a wallet try to transfer ETH after the pool creation, or the maximum OGs reached, the transaction will be reverted.
+- If a wallet try to transfer an amount different from 0.2 ETH, the transaction will be reverted.
 - Each wallet will have only one spot as OG.
 - In case of two transactions from the same wallet, the second transaction will be reverted, and the wallet will still be an OG.
 - If an OG transfer part of the tokens received, the wallet lose the OG status and becomes a normal wallet that pays fees, has limits and do not receive fees.
