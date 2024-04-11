@@ -111,7 +111,7 @@ https://github.com/web3melk/capy-token/tree/main
 Contract Creation:
 Token Address:
 
-#### Testnet
+#### Testnet #1
 
 Network: Polygon Mumbai
 Token Address: `0xBE596F38e0360488479321bE1E1f4c738d17F61E`
@@ -120,6 +120,16 @@ Swap: https://app.sushi.com/swap?inputCurrency=ETH&outputCurrency=0xBE596F38e036
 
 Launch: https://mumbai.polygonscan.com/tx/0xef7badd41422c5fcc73ac9ce917ba798a10f3ba43e6dd7a39e8b1ff2694b2ded
 Pool Created: https://mumbai.polygonscan.com/address/0x7ea5150cec77d3c10cc29b783b06cdded9bd95e3#tokentxns
+
+#### Testnet #2
+
+Network: Polygon Mumbai
+Token Address: `0x229b1755BE8328E1d1C1a1A209C6ab36a367f4EA`
+Scan: https://mumbai.polygonscan.com/address/0x229b1755BE8328E1d1C1a1A209C6ab36a367f4EA
+Swap: https://app.sushi.com/swap?inputCurrency=ETH&outputCurrency=0x229b1755BE8328E1d1C1a1A209C6ab36a367f4EA&chainId=80001
+
+Launch: 
+Pool Created: 
 
 ## Development
 
