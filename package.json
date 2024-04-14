@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "description": "",
     "scripts": {
-        "deploy": "op run --env-file=\".env\" -- hardhat run scripts/Capy.deploy.testnet.js --network mumbai",
+        "deploy": "op run --env-file=\".env\" -- hardhat run scripts/Capy.deploy.testnet.js --network sepolia",
         "test": "op run --env-file=\".env\" -- npx hardhat test"
     },
     "keywords": [],
@@ -14,8 +14,8 @@
     },
     "devDependencies": {
         "@anders-t/ethers-ledger": "^1.0.4",
+        "@nomicfoundation/hardhat-verify": "^2.0.5",
         "@nomiclabs/hardhat-ethers": "^2.2.3",
-        "@nomiclabs/hardhat-etherscan": "^3.0.0",
         "@nomiclabs/hardhat-waffle": "^2.0.5",
         "@nomiclabs/hardhat-web3": "^2.0.0",
         "@openzeppelin/test-environment": "^0.1.9",

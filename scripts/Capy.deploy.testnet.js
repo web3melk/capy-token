@@ -14,7 +14,11 @@ async function deployToken() {
 
   // Set Router SUSHI on Mumbai
   // https://docs.sushi.com/docs/Products/Classic%20AMM/Deployment%20Addresses
-  let routerAddress = "0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506";
+  // let routerAddress = "0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506";
+
+  // Set Router UNISWAP on Ethereum Sepolia
+  // https://docs.uniswap.org/contracts/v2/reference/smart-contracts/v2-deployments
+  let routerAddress = "0x425141165d3DE9FEC831896C016617a52363b687";
   await contract.setRouter(routerAddress);
 }
 

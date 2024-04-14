@@ -1,6 +1,6 @@
 require('@nomiclabs/hardhat-ethers');
 require("@nomiclabs/hardhat-waffle");
-require("@nomiclabs/hardhat-etherscan");
+require("@nomicfoundation/hardhat-verify");
 require("solidity-coverage");
 require("hardhat-gas-reporter");
 require("dotenv").config();
@@ -33,6 +33,11 @@ module.exports = {
       enabled: (process.env.REPORT_GAS) ? true : false
     },
     networks: {
+        'sepolia': {
+            url: `https://eth-sepolia.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY_ETH_SEPOLIA}`,
+            accounts: [process.env.WALLET_KEY],
+            chainId: 11155111,
+        },
         'base-sepolia': {
             url: `https://base-sepolia.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY_BASE_SEPOLIA}`,
             accounts: [process.env.WALLET_KEY],
@@ -51,7 +56,12 @@ module.exports = {
     },
     etherscan: {
       apiKey: {
-        polygonMumbai: process.env.POLYGON_MUMBAI_API_KEY
+        polygonMumbai: process.env.POLYGON_MUMBAI_API_KEY,
+        sepolia: process.env.ETHEREUM_SCAN_API_KEY,
       }
     },
+    sourcify: {
+      // Disabled by default, set here to disable warning
+      enabled: false
+    }
 };
