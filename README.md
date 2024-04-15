@@ -136,10 +136,10 @@ Pool Created:
 Network: Ethereum Sepolia
 Token Address: `0xBE596F38e0360488479321bE1E1f4c738d17F61E`
 Scan: https://sepolia.etherscan.io/address/0xBE596F38e0360488479321bE1E1f4c738d17F61E
-Swap: https://app.uniswap.org/swap?chain=sepolia&inputCurrency=ETH&outputCurrency=0xBE596F38e0360488479321bE1E1f4c738d17F61E
+Swap: https://1et.github.io/uniswap-v2-sepolia/#/swap
 
-Launch: 
-Pool Created: 
+Launch: https://sepolia.etherscan.io/tx/0x1df44145f92e4d2c47fa220c47b848bdb2e08b1924d8faf07cf1e166399e73f2
+Pool Created: https://sepolia.etherscan.io/address/0xedb21486d42323e136762f22d748ec0e3509291a#tokentxns
 
 ## Development
 
