@@ -3,11 +3,11 @@
 //
 // When running the script with `npx hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
-const hre = require("hardhat");
-const { LedgerSigner } = require("@anders-t/ethers-ledger");
-const { ledgerWallet } = require('../secrets.json');
+async function deployMainnet() {
+    const hre = require("hardhat");
+    const { LedgerSigner } = require("@anders-t/ethers-ledger");
+    const { ledgerWallet } = require('../secrets.json');
 
-async function main() {
     // Hardhat always runs the compile task when running scripts with its command
     // line interface.
     //
@@ -25,16 +25,20 @@ async function main() {
     let contractFactory = await Capy.connect(ledger)
 
     // Deploy the contract
-    const capy = await contractFactory.deploy();
+    const contract = await contractFactory.deploy();
 
-    await capy.deployed();
+    await contract.deployed();
+    console.log("Capy deployed to:", contract.address);
 
-    console.log("Capy deployed to:", capy.address);
+    // Set Router UNISWAP on BASE
+    // https://docs.uniswap.org/contracts/v2/reference/smart-contracts/v2-deployments
+    let routerAddress = "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24";
+    await contract.setRouter(routerAddress);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
-main()
+deployMainnet()
     .then(() => process.exit(0))
     .catch((error) => {
         console.error(error);
