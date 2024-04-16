@@ -1,17 +1,14 @@
 {
     "name": "capy-token",
     "version": "1.0.0",
-    "description": "",
+    "description": "$CAPY is a meme coin with no intrinsic value or expectation of financial return. There is no formal team or roadmap. The coin is completely useless and for entertainment purposes only.",
     "scripts": {
         "deploy": "op run --env-file=\".env\" -- hardhat run scripts/Capy.deploy.testnet.js --network sepolia",
         "test": "op run --env-file=\".env\" -- npx hardhat test"
     },
     "keywords": [],
-    "author": "",
-    "license": "ISC",
-    "Disabled": {
-        "@nomiclabs/hardhat-waffle": "^2.0.6"
-    },
+    "author": "MΞLK",
+    "license": "MIT",
     "devDependencies": {
         "@anders-t/ethers-ledger": "^1.0.4",
         "@nomicfoundation/hardhat-verify": "^2.0.5",
@@ -31,6 +28,7 @@
         "hardhat": "^2.22.2",
         "hardhat-gas-reporter": "^2.0.2",
         "solidity-coverage": "^0.8.11",
+        "usb": "2.12.1",
         "web3": "^1.6.1"
     },
     "dependencies": {

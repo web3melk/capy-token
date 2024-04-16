@@ -20,6 +20,7 @@ $CAPY is a meme coin with no intrinsic value or expectation of financial return.
 - The contract creator becomes a OG without paying 0.1 ETH;
 - There is a maximum of 50 OGs;
 - The OGs will receive 50% of tokens at the moment that pool is created;
+- The other 50% of tokens will be used to create the liquidity pool;
 - There is a fee applied on every buy and sell
 - 100% of all fees collected by the contract can be withdrawn to OGs;
 - The first 500 buys will have no fee;
@@ -108,8 +109,13 @@ https://github.com/web3melk/capy-token/tree/main
 
 #### Mainnet
 
-Contract Creation:
-Token Address:
+Network: BASE
+Token Address: ``
+Scan: 
+Swap: 
+
+Launch: 
+Pool Created: 
 
 #### Testnet MUMBAI #1
 
@@ -170,10 +176,10 @@ npx hardhat coverage
 ------------|----------|----------|----------|----------|----------------|
 File        |  % Stmts | % Branch |  % Funcs |  % Lines |Uncovered Lines |
 ------------|----------|----------|----------|----------|----------------|
- contracts/ |      100 |    76.47 |      100 |      100 |                |
-  Capy.sol  |      100 |    76.47 |      100 |      100 |                |
+ contracts/ |    85.71 |       68 |     87.1 |    87.84 |                |
+  Capy.sol  |    85.71 |       68 |     87.1 |    87.84 |... 461,462,463 |
 ------------|----------|----------|----------|----------|----------------|
- All files   |      100 |    76.47 |      100 |      100 |                |
+All files    |    85.71 |       68 |     87.1 |    87.84 |                |
 ------------|----------|----------|----------|----------|----------------|
 
 ### Hardhat config
@@ -186,7 +192,7 @@ To deploy on testnet
 
   $ npx hardhat run scripts/Capy.deploy.testnet.js --network mumbai
 
-### Verify contract on Polygonscan
+### Verify contract on Etherscan
 
 To verify the contract on Sepolia
 

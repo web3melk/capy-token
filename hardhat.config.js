@@ -35,28 +35,29 @@ module.exports = {
     networks: {
         'sepolia': {
             url: `https://eth-sepolia.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY_ETH_SEPOLIA}`,
-            accounts: [process.env.WALLET_KEY],
+            // accounts: [process.env.WALLET_KEY],
             chainId: 11155111,
         },
         'base-sepolia': {
             url: `https://base-sepolia.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY_BASE_SEPOLIA}`,
-            accounts: [process.env.WALLET_KEY],
+            // accounts: [process.env.WALLET_KEY],
             chainId: 84532,
         },
-        'base-mainnet': {
+        'base': {
             url: `https://base-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY_BASE_MAINNET}`,
-            accounts: [process.env.WALLET_KEY],
+            // accounts: [process.env.WALLET_KEY],
             chainId: 8453,
         },
         'mumbai': {
             url: `https://polygon-mumbai.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY_MUMBAI}`,
-            accounts: [process.env.WALLET_KEY],
+            // accounts: [process.env.WALLET_KEY],
             chainId: 80001,
       }
     },
     etherscan: {
       apiKey: {
         polygonMumbai: process.env.POLYGON_MUMBAI_API_KEY,
+        base: process.env.BASE_SCAN_API_KEY,
         sepolia: process.env.ETHEREUM_SCAN_API_KEY,
       }
     },

@@ -6,41 +6,39 @@
 async function deployMainnet() {
     const hre = require("hardhat");
     const { LedgerSigner } = require("@anders-t/ethers-ledger");
-    const { ledgerWallet } = require('../secrets.json');
 
     // Hardhat always runs the compile task when running scripts with its command
     // line interface.
     //
     // If this script is run directly using `node` you may want to call compile
     // manually to make sure everything is compiled
-    // await hre.run('compile');
+    await hre.run('compile');
 
     // Get ledger wallet
-    const ledger = new LedgerSigner(hre.ethers.provider, ledgerWallet);
+    const ledger = new LedgerSigner(hre.ethers.provider, process.env.LEDGER_WALLET_PATH);
 
     // We get the contract to deploy
     const Capy = await hre.ethers.getContractFactory("CapybaseSocietyToken");
 
+    console.log("Deploying contract with the account:", await ledger.getAddress());
+    console.log("Account balance:", (await ledger.getBalance()).toString());
+    console.log('Open the Ethereum app on your ledger.')
+
     // Connect ledger to the contractFactory
-    let contractFactory = await Capy.connect(ledger)
+    let contractFactory = await Capy.connect(ledger);
 
     // Deploy the contract
     const contract = await contractFactory.deploy();
 
     await contract.deployed();
     console.log("Capy deployed to:", contract.address);
-
-    // Set Router UNISWAP on BASE
-    // https://docs.uniswap.org/contracts/v2/reference/smart-contracts/v2-deployments
-    // let routerAddress = "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24";
-    // await contract.setRouter(routerAddress);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
 deployMainnet()
-    .then(() => process.exit(0))
-    .catch((error) => {
-        console.error(error);
-        process.exit(1);
-    });
+  .then(() => process.exit(0))
+  .catch((error) => {
+      console.error(error);
+      process.exit(1);
+  });

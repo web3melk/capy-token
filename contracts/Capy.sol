@@ -23,6 +23,7 @@ import '@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol';
 // - The contract creator becomes a OG without paying 0.1 ETH;
 // - There is a maximum of 50 OGs;
 // - The OGs will receive 50% of tokens at the moment that pool is created;
+// - The other 50% of tokens will be used to create the liquidity pool;
 // - There is a fee applied on every buy and sell
 // - 100% of all fees collected by the contract can be withdrawn to OGs;
 // - The first 500 buys will have no fee;
