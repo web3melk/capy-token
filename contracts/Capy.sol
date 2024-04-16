@@ -20,8 +20,8 @@ import '@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol';
 // TL;DR
 // $CAPY is a meme coin with no intrinsic value or expectation of financial return. There is no formal team or roadmap. The coin is completely useless and for entertainment purposes only.
 // - An OG is the wallet that bought the token on the presale before the pool is created and the trading is started;
-// - To become an OG a wallet should send 0.2 ETH to contract address *before the trade is opened*;
-// - The contract creator becomes a OG without paying 0.2 ETH;
+// - To become an OG a wallet should send 0.1 ETH to contract address *before the trade is opened*;
+// - The contract creator becomes a OG without paying 0.1 ETH;
 // - There is a maximum of 50 OGs;
 // - The OGs will receive 50% of tokens at the moment that pool is created;
 // - There is a fee applied on every buy and sell
