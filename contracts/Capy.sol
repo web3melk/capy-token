@@ -55,7 +55,7 @@ contract CapybaseSocietyToken is ERC20, Ownable, ReentrancyGuard {
     address public Router = 0x6BDED42c6DA8FBf0d2bA55B2fa120C5e0c8D7891;
 
     mapping(address => bool) private _automatedMarketMakerPairs;
-    uint256 private _priceOG = 0.2 ether;
+    uint256 private _priceOG = 0.1 ether;
     uint256 private _maxOGs = 50;
     uint256 private _initialBuyFee = 0;
     uint256 private _initialSellFee = 4; // 0.4%

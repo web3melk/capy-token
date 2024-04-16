@@ -34,10 +34,10 @@ describe('Capy', function () {
       return (await this.contract.uniswapV2Pair()).toLowerCase();
     }
     this.addOGs = async function (total) {
-      this.tokenPrice = total * 0.2 / 500_000_000 * 3600; // considering 1 ether = $3,600
+      this.tokenPrice = total * 0.1 / 500_000_000 * 3600; // considering 1 ether = $3,600
       await this.og.sendTransaction({
         to: this.contract.address,
-        value: eth(0.2)
+        value: eth(0.1)
       });
       for (var i = 0; i < total-1; i++) {
         var wallet = ethers.Wallet.createRandom();
@@ -48,7 +48,7 @@ describe('Capy', function () {
         });
         await wallet.sendTransaction({
           to: this.contract.address,
-          value: eth(0.2)
+          value: eth(0.1)
         });
       };
     };
@@ -161,14 +161,14 @@ describe('Capy', function () {
         await this.addOGs(49);
         await expect(this.deployer.sendTransaction({
           to: this.contract.address,
-          value: eth(0.2)
+          value: eth(0.1)
         })).to.be.revertedWith("Max OGs reached");
       });
-      it('when 0.2 eth should add OG and exclude from fee', async function () {
+      it('when 0.1 eth should add OG and exclude from fee', async function () {
         expect(await this.contract.totalOGs()).to.equal(1);
         await expect(this.signers[3].sendTransaction({
           to: this.contract.address,
-          value: eth(0.2)
+          value: eth(0.1)
         })).to.emit(this.contract, 'ExcludeFromFees').withArgs(this.signers[3].address, true);
         expect(await this.contract.totalOGs()).to.equal(2);
         expect(await this.contract.OGs(1)).to.equal(this.signers[3].address);
@@ -188,14 +188,14 @@ describe('Capy', function () {
       it('should not add same OG twice', async function () {
         await expect(this.deployer.sendTransaction({
           to: this.contract.address,
-          value: eth(0.2)
+          value: eth(0.1)
         })).to.be.revertedWith("Already an OG");
       });
-      it("when 0.200001 eth should not add OG", async function () {
+      it("when 0.100001 eth should not add OG", async function () {
         await expect(
           this.signers[4].sendTransaction({
             to: this.contract.address,
-            value: eth(0.20001),
+            value: eth(0.10001),
           })
         ).to.be.revertedWith("Invalid amount")
       });
@@ -210,7 +210,7 @@ describe('Capy', function () {
       it('should revert', async function () {
         await expect(this.signers[6].sendTransaction({
           to: this.contract.address,
-          value: eth(0.2)
+          value: eth(0.1)
         })).to.be.revertedWith("Trading already started");
       });
     });
@@ -277,13 +277,13 @@ describe('Capy', function () {
     it('should create the pool and add liquidity', async function () {
       await this.addOGs(9);
       expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth(1000000000));
-      expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth(1.8));
+      expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth(0.9));
       await this.contract.ownerLaunch();
       let uniswapV2PairAddress = await this.contract.uniswapV2Pair();
       // Remain with no tokens
       expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth(0));
       // Send passed amount of ETH to pool
-      expect(await this.WETH.balanceOf(uniswapV2PairAddress)).to.equal(eth(1.8));
+      expect(await this.WETH.balanceOf(uniswapV2PairAddress)).to.equal(eth(0.9));
       expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth(0));
       // Send 50% of tokens to pool
       expect(await this.contract.balanceOf(uniswapV2PairAddress)).to.equal(eth(500_000_000));
@@ -425,19 +425,19 @@ describe('Capy', function () {
       describe("fees", function () {
         describe("buy", function () {
           it('do not collect fees before 500 buys', async function () {
-            expect(this.tokenPrice).to.be.closeTo(0.00000144, 0.0000001);
-            await this.buy(this.signers[10], ethFromDollar(1.44));
+            expect(this.tokenPrice).to.be.closeTo(0.00000072, 0.0000001);
+            await this.buy(this.signers[10], ethFromDollar(0.72));
             let balance = await this.contract.balanceOf(this.signers[10].address);
             expect(ethers.utils.formatEther(balance)).to.be.equal('995015.938219190933279041');
-            expect(parseFloat(ethers.utils.formatEther(balance)) * this.tokenPrice).to.be.closeTo(1.44, 0.02)
+            expect(parseFloat(ethers.utils.formatEther(balance)) * this.tokenPrice).to.be.closeTo(0.72, 0.02)
           });
           it('do not collect fees after 500 buys', async function () {
             await this.contract.updateBuyCount(600);
-            expect(this.tokenPrice).to.be.closeTo(0.00000144, 0.0000001);
-            await this.buy(this.signers[10], ethFromDollar(1.44));
+            expect(this.tokenPrice).to.be.closeTo(0.00000072, 0.0000001);
+            await this.buy(this.signers[10], ethFromDollar(0.72));
             let balance = await this.contract.balanceOf(this.signers[10].address);
             expect(ethers.utils.formatEther(balance)).to.be.equal('995015.938219190933279041');
-            expect(parseFloat(ethers.utils.formatEther(balance)) * this.tokenPrice).to.be.closeTo(1.44, 0.02)
+            expect(parseFloat(ethers.utils.formatEther(balance)) * this.tokenPrice).to.be.closeTo(0.72, 0.02)
           });
         });
         describe("sell", function () {
@@ -447,7 +447,7 @@ describe('Capy', function () {
             await this.signers[15].sendTransaction({to: wallet.address, value: ethers.utils.parseEther("1")});
             this.sellSigner = wallet;
             await this.contract.connect(this.deployer).transfer(this.sellSigner.address, eth(10_000_000));
-            expect(this.tokenPrice).to.be.closeTo(0.00000144, 0.0000001);
+            expect(this.tokenPrice).to.be.closeTo(0.00000072, 0.0000001);
           });
           it('do not collect fees before 1000 buys', async function () {
             let sellFee = 0;
@@ -628,16 +628,16 @@ describe('Capy', function () {
       describe("fees", function () {
         describe("buy", function () {
           it('collect no fees before 500 buys', async function () {
-            expect(this.tokenPrice.toString()).to.equal('0.00001296');
-            await this.buy(this.signers[10], ethFromDollar(1.296));
+            expect(this.tokenPrice.toString()).to.equal('0.00000648');
+            await this.buy(this.signers[10], ethFromDollar(0.648));
             let balance = await this.contract.balanceOf(this.signers[10].address);
             expect(ethers.utils.formatEther(balance)).to.be.equal('99680.12378331760646927');
-            expect(parseFloat(ethers.utils.formatEther(balance)) * this.tokenPrice).to.be.closeTo(1.296, 0.02)
+            expect(parseFloat(ethers.utils.formatEther(balance)) * this.tokenPrice).to.be.closeTo(0.648, 0.02)
           });
           it('do collect 0.2% of fees after 500 buys', async function () {
             await this.contract.updateBuyCount(600);
-            expect(this.tokenPrice.toString()).to.equal('0.00001296');
-            await this.buy(this.signers[10], ethFromDollar(1.296));
+            expect(this.tokenPrice.toString()).to.equal('0.00000648');
+            await this.buy(this.signers[10], ethFromDollar(0.648));
             let balance = await this.contract.balanceOf(this.signers[10].address);
             let wouldReceive = eth('99480.763535750971256332')
             expect(balance).to.be.equal(wouldReceive);
@@ -645,11 +645,11 @@ describe('Capy', function () {
           it('do not collect fees after 500 buys when wallet is excluded', async function () {
             await this.contract.updateBuyCount(600);
             await this.contract.excludeFromFees(this.signers[10].address, true);
-            expect(this.tokenPrice.toString()).to.equal('0.00001296');
-            await this.buy(this.signers[10], ethFromDollar(1.296));
+            expect(this.tokenPrice.toString()).to.equal('0.00000648');
+            await this.buy(this.signers[10], ethFromDollar(0.648));
             let balance = await this.contract.balanceOf(this.signers[10].address);
             expect(ethers.utils.formatEther(balance)).to.be.equal('99680.12378331760646927');
-            expect(parseFloat(ethers.utils.formatEther(balance)) * this.tokenPrice).to.be.closeTo(1.296, 0.02)
+            expect(parseFloat(ethers.utils.formatEther(balance)) * this.tokenPrice).to.be.closeTo(0.648, 0.02)
           });
         });
         describe("sell", function () {
@@ -659,11 +659,11 @@ describe('Capy', function () {
             await this.signers[15].sendTransaction({to: wallet.address, value: ethers.utils.parseEther("1")});
             this.sellSigner = wallet;
             await this.contract.connect(this.deployer).transfer(this.sellSigner.address, eth(10_000_000));
-            expect(this.tokenPrice.toString()).to.equal('0.00001296');
+            expect(this.tokenPrice.toString()).to.equal('0.00000648');
           });
           it('do collect 0.4% of fees before 1000 buys', async function () {
             let sellFee = 0.004;
-            let gas = eth('0.0012');
+            let gas = eth('0.0008');
             let previousBalance = await ethers.provider.getBalance(this.sellSigner.address);
             await this.sell(this.sellSigner, eth(10_000_000));
             expect(await this.contract.balanceOf(this.sellSigner.address)).to.equal(eth(0));
@@ -675,7 +675,7 @@ describe('Capy', function () {
           it('do collect 0.4% of fees after 500 buys and before 1000 buys', async function () {
             await this.contract.updateBuyCount(600);
             let sellFee = 0.004;
-            let gas = eth('0.0012');
+            let gas = eth('0.0008');
             let previousBalance = await ethers.provider.getBalance(this.sellSigner.address);
             await this.sell(this.sellSigner, eth(10_000_000));
             expect(await this.contract.balanceOf(this.sellSigner.address)).to.equal(eth(0));
@@ -687,7 +687,7 @@ describe('Capy', function () {
           it('collect 0.2% of fees after 1000 buys', async function () {
             await this.contract.updateBuyCount(1200);
             let sellFee = 0.002;
-            let gas = eth('0.0012');
+            let gas = eth('0.0008');
             let previousBalance = await ethers.provider.getBalance(this.sellSigner.address);
             await this.sell(this.sellSigner, eth(10_000_000));
             expect(await this.contract.balanceOf(this.sellSigner.address)).to.equal(eth(0));
@@ -700,7 +700,7 @@ describe('Capy', function () {
             await this.contract.updateBuyCount(1200);
             await this.contract.excludeFromFees(this.sellSigner.address, true);
             let sellFee = 0.002;
-            let gas = eth('0.0012');
+            let gas = eth('0.0008');
             let previousBalance = await ethers.provider.getBalance(this.sellSigner.address);
             await this.sell(this.sellSigner, eth(10_000_000));
             expect(await this.contract.balanceOf(this.sellSigner.address)).to.equal(eth(0));
@@ -820,17 +820,17 @@ describe('Capy', function () {
       it('revert with low balance', async function () {
         expect(await this.contract.totalOGs()).to.equal(3);
         await this.contract.withdrawETH();
-        expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth('0.000000000000000001'));
+        expect(await ethers.provider.getBalance(this.contract.address)).to.equal(eth('0.000000000000000002'));
         await expect(this.contract.withdrawETH()).to.be.revertedWith("Not enough ETH to withdraw");
       });
     });
     describe("with enough balance", function () {
       beforeEach(async function () {
-        await this.addOGs(1); // OG will send 0.2
+        await this.addOGs(1); // OG will send 0.1
         await this.contract.setCheckReceive(false);
         await this.signers[4].sendTransaction({
           to: this.contract.address,
-          value: eth(999.8) // OG will send 0.2 each, that's why 999.5 here
+          value: eth(999.9) // OG will send 0.1
         });
         await this.contract.setCheckReceive(true);
       });
@@ -874,7 +874,7 @@ describe('Capy', function () {
         await this.contract.manualSwap();
         let laterOGBalance = await ethers.provider.getBalance(this.og.address);
         expect(await this.contract.balanceOf(this.contract.address)).to.equal(eth(0));
-        expect(await laterOGBalance.sub(previousOGBalance)).to.equal(eth("0.002254985911364829"));
+        expect(await laterOGBalance.sub(previousOGBalance)).to.equal(eth("0.002235049886608165"));
       });
     });
   });
