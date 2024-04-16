@@ -10,7 +10,7 @@ async function deployToken() {
   const contract = await Capy.deploy();
 
   await contract.deployed();
-  console.log("Token address:", contract.address);
+  console.log("Capy deployed to:", contract.address);
 
   // Set Router SUSHI on Mumbai
   // https://docs.sushi.com/docs/Products/Classic%20AMM/Deployment%20Addresses

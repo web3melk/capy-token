@@ -32,8 +32,8 @@ async function deployMainnet() {
 
     // Set Router UNISWAP on BASE
     // https://docs.uniswap.org/contracts/v2/reference/smart-contracts/v2-deployments
-    let routerAddress = "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24";
-    await contract.setRouter(routerAddress);
+    // let routerAddress = "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24";
+    // await contract.setRouter(routerAddress);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
