@@ -32,6 +32,11 @@ async function deployMainnet() {
 
     await contract.deployed();
     console.log("Capy deployed to:", contract.address);
+
+    // Set Router 1et on Ethereum Sepolia
+    // https://github.com/1ET/uniswap-v2-sepolia?tab=readme-ov-file
+    // let routerAddress = "0x1675325a59017823c9417DE46EF55Bbe4ca3136c";
+    // await contract.setRouter(routerAddress);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

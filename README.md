@@ -147,6 +147,16 @@ Swap: https://1et.github.io/uniswap-v2-sepolia/#/swap
 Launch: https://sepolia.etherscan.io/tx/0x1df44145f92e4d2c47fa220c47b848bdb2e08b1924d8faf07cf1e166399e73f2
 Pool Created: https://sepolia.etherscan.io/address/0xedb21486d42323e136762f22d748ec0e3509291a#tokentxns
 
+#### Testnet Ethereum Sepolia #2
+
+Network: Ethereum Sepolia
+Token Address: `0x6F4eFd347C2A36dB94D4DE022bE4a0C21E4Aa9ad`
+Scan: https://sepolia.etherscan.io/address/0x6F4eFd347C2A36dB94D4DE022bE4a0C21E4Aa9ad
+Swap: https://1et.github.io/uniswap-v2-sepolia/#/swap
+
+Launch: https://sepolia.etherscan.io/tx/0xc248f060cc1fa709b5ee48acf0bab796f18c27ecbcb1d4d201d312598a461b47
+Pool Created: https://sepolia.etherscan.io/address/0xceD1b95C7a87e8B7de12a36c5bdA9DB8E0746239
+
 ## Development
 
 ### Commands
