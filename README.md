@@ -110,8 +110,8 @@ https://github.com/web3melk/capy-token/tree/main
 #### Mainnet
 
 Network: BASE
-Token Address: ``
-Scan: 
+Token Address: `0xB951df92512e9aEb407f840997F5ddf17d8D8bE4`
+Scan: https://basescan.org/address/0xB951df92512e9aEb407f840997F5ddf17d8D8bE4
 Swap: 
 
 Launch: 
