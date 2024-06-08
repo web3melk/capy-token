@@ -110,28 +110,39 @@ https://github.com/web3melk/capy-token/tree/main
 #### Mainnet
 
 Network: BASE
+
 Token Address: `0xB951df92512e9aEb407f840997F5ddf17d8D8bE4`
+
 Scan: https://basescan.org/address/0xB951df92512e9aEb407f840997F5ddf17d8D8bE4
+
 Swap: https://app.uniswap.org/swap?inputCurrency=ETH&outputCurrency=0xB951df92512e9aEb407f840997F5ddf17d8D8bE4&chain=base
 
 Launch: https://basescan.org/tx/0x4ef9db749b2957c1d9d0673a1cf8fc2c936fc418defd5555aa28d27c163c6430
+
 Pool Created: https://basescan.org/address/0x7955C0937cE1408F3a02660962cEca88d3DC7614
 
 #### Testnet MUMBAI #1
 
 Network: Polygon Mumbai
+
 Token Address: `0xBE596F38e0360488479321bE1E1f4c738d17F61E`
+
 Scan: https://mumbai.polygonscan.com/address/0xBE596F38e0360488479321bE1E1f4c738d17F61E
+
 Swap: https://app.sushi.com/swap?inputCurrency=ETH&outputCurrency=0xBE596F38e0360488479321bE1E1f4c738d17F61E&chainId=80001
 
 Launch: https://mumbai.polygonscan.com/tx/0xef7badd41422c5fcc73ac9ce917ba798a10f3ba43e6dd7a39e8b1ff2694b2ded
+
 Pool Created: https://mumbai.polygonscan.com/address/0x7ea5150cec77d3c10cc29b783b06cdded9bd95e3#tokentxns
 
 #### Testnet MUMBAI #2
 
 Network: Polygon Mumbai
+
 Token Address: `0x229b1755BE8328E1d1C1a1A209C6ab36a367f4EA`
+
 Scan: https://mumbai.polygonscan.com/address/0x229b1755BE8328E1d1C1a1A209C6ab36a367f4EA
+
 Swap: https://app.sushi.com/swap?inputCurrency=ETH&outputCurrency=0x229b1755BE8328E1d1C1a1A209C6ab36a367f4EA&chainId=80001
 
 Launch: 
@@ -140,18 +151,25 @@ Pool Created:
 #### Testnet Ethereum Sepolia #1
 
 Network: Ethereum Sepolia
+
 Token Address: `0xBE596F38e0360488479321bE1E1f4c738d17F61E`
+
 Scan: https://sepolia.etherscan.io/address/0xBE596F38e0360488479321bE1E1f4c738d17F61E
+
 Swap: https://1et.github.io/uniswap-v2-sepolia/#/swap
 
 Launch: https://sepolia.etherscan.io/tx/0x1df44145f92e4d2c47fa220c47b848bdb2e08b1924d8faf07cf1e166399e73f2
+
 Pool Created: https://sepolia.etherscan.io/address/0xedb21486d42323e136762f22d748ec0e3509291a#tokentxns
 
 #### Testnet Ethereum Sepolia #2
 
 Network: Ethereum Sepolia
+
 Token Address: `0x6F4eFd347C2A36dB94D4DE022bE4a0C21E4Aa9ad`
+
 Scan: https://sepolia.etherscan.io/address/0x6F4eFd347C2A36dB94D4DE022bE4a0C21E4Aa9ad
+
 Swap: https://1et.github.io/uniswap-v2-sepolia/#/swap
 
 Launch: https://sepolia.etherscan.io/tx/0xc248f060cc1fa709b5ee48acf0bab796f18c27ecbcb1d4d201d312598a461b47
