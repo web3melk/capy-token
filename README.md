@@ -112,10 +112,10 @@ https://github.com/web3melk/capy-token/tree/main
 Network: BASE
 Token Address: `0xB951df92512e9aEb407f840997F5ddf17d8D8bE4`
 Scan: https://basescan.org/address/0xB951df92512e9aEb407f840997F5ddf17d8D8bE4
-Swap: 
+Swap: https://app.uniswap.org/swap?inputCurrency=ETH&outputCurrency=0xB951df92512e9aEb407f840997F5ddf17d8D8bE4&chain=base
 
-Launch: 
-Pool Created: 
+Launch: https://basescan.org/tx/0x4ef9db749b2957c1d9d0673a1cf8fc2c936fc418defd5555aa28d27c163c6430
+Pool Created: https://basescan.org/address/0x7955C0937cE1408F3a02660962cEca88d3DC7614
 
 #### Testnet MUMBAI #1
 
