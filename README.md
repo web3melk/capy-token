@@ -55,9 +55,9 @@ All withdrawals are made to all OGs proportionally.
 
 ### Trade
 
-Trade on Uniswap: `(TBD)`
+Trade on Uniswap: https://app.uniswap.org/swap?inputCurrency=ETH&outputCurrency=0xB951df92512e9aEb407f840997F5ddf17d8D8bE4&chain=base
 
-Uniswap Pair Address: `(TBD)`
+Uniswap Pair Address: https://basescan.org/address/0x7955C0937cE1408F3a02660962cEca88d3DC7614
 
 ### Fees
 
