@@ -3,7 +3,7 @@
 ## Token
 
 * Chain: BASE
-* Contract Address: `(TBD)`
+* Contract Address: `0xB951df92512e9aEb407f840997F5ddf17d8D8bE4`
 * Total Fixed Supply: `1,000,000,000` (1 Billion)
 * Supply:
   * Liquidity Pool: `50%`
